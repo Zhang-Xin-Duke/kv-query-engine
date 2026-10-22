@@ -1,0 +1,38 @@
+name: build-and-test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: g++
+            mode: Release
+            sanitizer: 'OFF'
+          - os: ubuntu-latest
+            compiler: clang++
+            mode: Debug
+            sanitizer: 'OFF'
+          - os: ubuntu-latest
+            compiler: clang++
+            mode: Debug
+            sanitizer: 'ON'
+    runs-on: ${{ matrix.os }}
+    env:
+      CXX: ${{ matrix.compiler }}
+      ASAN_OPTIONS: detect_leaks=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build/ci -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DKVQUERY_SANITIZERS=${{ matrix.sanitizer }}
+      - name: Build
+        run: cmake --build build/ci --parallel 2
+      - name: Test
+        run: ctest --test-dir build/ci --output-on-failure

@@ -1,0 +1,10 @@
+Required Notice: Copyright (c) 2026 Xin Zhang.
+
+KVQueryEngine's original contributions are licensed under the PolyForm Noncommercial
+License 1.0.0, provided in LICENSE. Commercial use is not licensed under this grant.
+
+KVQueryEngine includes adaptations of a user-supplied kfc-peta-lite source checkout.
+Original rights in those portions remain with their respective holders. Their
+source paths, commit, file hashes, and adaptation scope are recorded in
+docs/PROVENANCE.md. The project license grants rights only in contributions the
+licensor owns; it does not relicense inherited material.
