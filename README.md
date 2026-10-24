@@ -201,6 +201,35 @@ auto snapshot = kvquery::Snapshot::build(records, options);
 bash bench/run_linux.sh bench/results/linux-inline 0 inline
 ```
 
+### Larger working sets
+
+The scaling test holds value size at six bytes, batch size at 256, target hit rate
+at 90%, and **1,048,576 queries per round** across all three sizes. It uses the same
+server, binary, CPU affinity and paired measurement protocol. Each case runs in
+three independent processes with three rounds. Throughput is in Mkeys/s; gains
+are matched per-process ratio medians.
+
+| Records | SIMD/32 external | SIMD/32 inline | SIMD gain | AMAC/32 gain | Logical storage MB, before → after |
+|---|---:|---:|---:|---:|---:|
+| 1,000,000 | 25.07 | 31.94 | +27.4% | +27.0% | 26 → 20 |
+| 4,000,000 | 20.08 | 28.78 | +41.8% | +43.3% | 104 → 80 |
+| 8,000,000 | 18.17 | 26.57 | +46.0% | +48.2% | 208 → 160 |
+
+The relative SIMD gain rises from 27.4% at one million records to 46.0% at eight
+million; AMAC/32 reaches 48.2%. Inlined logical storage at eight million records is
+160 MB versus 208 MB externally. Absolute throughput falls as the dataset grows,
+while inlining reduces the loss relative to external-only storage. The index
+arrays span roughly 20, 80 and 160 MB on a server with a 20 MiB L3 cache. This
+trend is consistent with avoiding external-value accesses becoming more valuable
+as the working set expands. These are single-threaded working-set measurements.
+
+- [Scaling raw results and source/binary hashes](bench/results/duke-inline-scale-2026-10-24.json)
+- [Scaling process ranges and full strategy results](bench/results/duke-inline-scale-2026-10-24.md)
+
+```sh
+bash bench/run_linux.sh bench/results/linux-inline-scale 0 inline-scale
+```
+
 ## Validation
 
 Eleven CTest groups cover edge values, forced collisions and relocation, randomized differential lookup, result ownership, concurrent access, persistence failures, golden file bytes, SIMD lane/tail handling, inline payloads and cross-layout loading, CLI integration, and benchmark output validation. Linux CI builds GCC Release, Clang Debug, Clang ASan/UBSan, and forced-portable Release configurations.

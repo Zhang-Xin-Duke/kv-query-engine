@@ -127,3 +127,24 @@ within the same workload; they are not averaged across incompatible batch sizes.
 Current reports measure revision `14311dee25ecf9fdd398afb1cb365e28454a60f5`.
 The earlier `duke-x86-2026-10-24.*` files retain the preceding SIMD-only run as
 historical evidence; current README tables use the rerun of the final implementation.
+
+## Working-set scaling
+
+```sh
+bash bench/run_linux.sh bench/results/linux-inline-scale 0 inline-scale
+```
+
+This paired suite holds six-byte values, batch 256 and 90% target hits fixed while
+increasing records from 1 million to 4 million and 8 million. Every case uses
+1,048,576 queries per round, three rounds and three processes. Increasing query
+coverage helps exercise datasets beyond the host's last-level cache. The suite
+retains all 21 configurations, including the map baseline. It measures local
+single-threaded lookups, with CPU affinity `[0]`, and records the same environment,
+checksums, hashes and process ranges as the first inline suite.
+
+- [Scaling raw JSON](../bench/results/duke-inline-scale-2026-10-24.json)
+- [Scaling report](../bench/results/duke-inline-scale-2026-10-24.md)
+
+The scaling driver adds workloads at revision
+`a407f3c0c5f6f0cb4fd130d92f183fdbf8e8ca7e`. Engine source and the measured binary
+are unchanged from revision `14311dee25ecf9fdd398afb1cb365e28454a60f5`.

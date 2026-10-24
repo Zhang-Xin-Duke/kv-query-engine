@@ -214,6 +214,26 @@ bash bench/run_linux.sh bench/results/linux-suite 0
 bash bench/run_linux.sh bench/results/linux-inline 0 inline
 ```
 
+### 扩大工作集后的收益
+
+固定每条 Value 为 6 字节、每批 256 个 Key、90% 目标命中率，每轮统一查询 **1,048,576 个 Key**。沿用同一服务器、同一二进制、CPU 0 和成对测量方法；每种规模运行 3 个独立进程、每进程 3 轮。吞吐单位为 Mkeys/s，收益为逐进程比值的中位数。
+
+| Records | SIMD/32 external | SIMD/32 inline | SIMD gain | AMAC/32 gain | Logical storage MB, before → after |
+|---|---:|---:|---:|---:|---:|
+| 1,000,000 | 25.07 | 31.94 | +27.4% | +27.0% | 26 → 20 |
+| 4,000,000 | 20.08 | 28.78 | +41.8% | +43.3% | 104 → 80 |
+| 8,000,000 | 18.17 | 26.57 | +46.0% | +48.2% | 208 → 160 |
+
+SIMD 相对收益随记录数从百万增加到八百万，由 27.4% 提高到 46.0%，AMAC/32 在八百万条时提高 48.2%。八百万条的逻辑空间从 208 MB 降至 160 MB。数据集扩大时绝对吞吐仍会降低，内联减轻了相对于全部外置布局的下降。
+
+这三种规模的索引约为 20、80、160 MB，服务器 L3 为 20 MiB；结果符合扩大工作集后，避免访问独立 Value 区域更有价值的预期。这次扩大的是数据集和查询覆盖面，执行仍为单线程。
+
+[扩容原始数据](bench/results/duke-inline-scale-2026-10-24.json) · [完整结果与进程范围](bench/results/duke-inline-scale-2026-10-24.md)
+
+```sh
+bash bench/run_linux.sh bench/results/linux-inline-scale 0 inline-scale
+```
+
 ## 测试与验证
 
 测试覆盖边界值、确定性冲突与节点迁移、随机差分、结果生命周期、并发读取、保存竞争、损坏文件、固定字节格式与 CLI。Linux CI 运行 GCC Release、Clang Debug 和 Clang ASan/UBSan 与强制可移植 SIMD 四组配置。

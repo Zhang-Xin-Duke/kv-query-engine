@@ -114,3 +114,36 @@ The published standard eight-case suite was rerun from the same revision and
 binary. Both suites recorded CPU affinity `[0]`, clean tracked source files and
 matching source/binary hashes. Global swap-in, swap-out and major-fault counters
 remained unchanged during each suite.
+
+## Scaling beyond the last-level cache
+
+The additional suite measures 1/4/8 million records, six-byte values, batches of
+256 keys, 90% target hits and 1,048,576 queries per round. Each size uses three
+processes with three rounds. It measures revision
+`a407f3c0c5f6f0cb4fd130d92f183fdbf8e8ca7e`; the engine and benchmark executable are
+unchanged from the first suite. Both report the same binary SHA-256:
+`a91a320a2461930d8b7e2373cc70b49deaac9c125d7ef2c0ad4b30677a882e45`.
+
+| Records | SIMD/32 external | SIMD/32 inline | SIMD gain | AMAC/32 gain | Logical storage MB, before → after |
+|---|---:|---:|---:|---:|---:|
+| 1,000,000 | 25.07 | 31.94 | +27.4% | +27.0% | 26 → 20 |
+| 4,000,000 | 20.08 | 28.78 | +41.8% | +43.3% | 104 → 80 |
+| 8,000,000 | 18.17 | 26.57 | +46.0% | +48.2% | 208 → 160 |
+
+SIMD paired gains are 27.4%, 41.8% and 46.0%; process ranges are 26.1–27.5%,
+41.0–44.4% and 45.8–47.5%. AMAC/32 gains are 27.0%, 43.3% and 48.2%.
+Scalar gains remain about 30–32%, illustrating executor-dependent scaling.
+The index arrays are approximately 20/80/160 MB, compared with the host's 20 MiB L3.
+Avoiding external-value accesses and reducing the working set are plausible
+contributors; the comparison does not isolate either one. Higher relative speedup
+does not mean larger datasets have higher absolute throughput.
+
+The scaling series uses more queries than the original 262,144-query paired
+suite. Compare sizes within this scaling series to assess the working-set trend.
+Execution remains single-threaded on CPU 0; concurrent saturation is a separate
+measurement. No global swap or major-fault counter changed during the run.
+
+- [Scaling raw JSON](../bench/results/duke-inline-scale-2026-10-24.json)
+- [Scaling full report and process ranges](../bench/results/duke-inline-scale-2026-10-24.md)
+- [Environment](../bench/results/duke-inline-scale-2026-10-24.environment.txt)
+- [Server checks](../bench/results/duke-inline-scale-2026-10-24.tests.txt)
