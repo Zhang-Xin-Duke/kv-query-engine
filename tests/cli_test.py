@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory(prefix="kvquery-cli-") as tmp:
     assert run("build", source, snapshot) == "saved 3 records\n"
     assert json.loads(run("inspect", snapshot))["records"] == 3
     expected = "7\tFOUND\t68656c6c6f\n8\tMISSING\n0\tFOUND\t\n7\tFOUND\t68656c6c6f\n18446744073709551615\tFOUND\t776f726c64\n"
-    for strategy in ("scalar", "prefetch", "amac"):
+    for strategy in ("scalar", "prefetch", "amac", "simd"):
         assert run("query", snapshot, "--strategy", strategy, "--window", 3,
                    7, 8, 0, 7, 18446744073709551615) == expected
     old = snapshot.read_bytes()

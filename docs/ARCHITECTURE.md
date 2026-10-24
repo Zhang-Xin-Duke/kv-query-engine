@@ -108,6 +108,16 @@ Value 字节保存在独立的连续数组中。固定大小的索引节点因�
 
 状态记录输入位置，因此重复 Key 不会被合并，完成顺序也不会改变输出顺序。`query()` 中的固定大小状态数组只读取已初始化的有效窗口。
 
+### SIMD 批量探测
+
+执行器以最多 `window` 个残余状态保留输入位置、当前桶与活跃标记。一次读取两个活跃状态的候选节点，用一条 128 位向量同时比较两个完整的 64 位 Key，再分别处理命中、缺失或下一链节点。仍在查找的状态保留在原槽位，已完成槽位立即接入后续 Key，初始填充与尾部排空共用同一套状态管理。
+
+ARM64 使用 NEON 的 `vceqq_u64`；x86 SSE2 先比较四个 32 位半字，再要求每个 Key 的两个半字均相等。其他编译目标调用可移植比较。单个剩余活跃槽位或奇数窗口的最后槽位直接比较；执行器不会读取未初始化或越界的槽位。Key 为零仍需检查候选槽位是否为空。
+
+选择两个 64 位通道，可以沿用现有索引并支持基础 ARM64/x86 指令集。桶计算、离散节点加载、链偏移解码与结果回填仍按槽位执行，向量化范围是候选 Key 比较。成组加载和残余状态调度需要额外指令，所以 Scalar 继续作为默认路径，使用基准按负载选择执行器。
+
+`simd_backend()` 报告编译到库中的 `neon`、`sse2` 或 `portable` 后端。CMake 的 `KVQUERY_FORCE_PORTABLE_SIMD` 强制回退路径，CI 单独覆盖。指令语义参考 [Arm NEON 官方文档](https://arm-software.github.io/acle/neon_intrinsics/advsimd.html#compare) 和 [Intel Intrinsics Reference](https://www.intel.com/content/dam/develop/external/us/en/documents/18072-347603.pdf)。
+
 ## 5. 结果所有权与并发
 
 `BatchResult` 保存 `vector<optional<string_view>>` 与 `shared_ptr<const Snapshot>`。
@@ -176,6 +186,7 @@ Payload 按记录重复保存 `uint64 key + uint64 value_length + value_bytes`�
 |---|---|
 | `include/kvquery/kvquery.hpp` | Record、配置、结果、快照公共接口 |
 | `include/kvquery/detail/neighbor_index.hpp` | 节点布局、定位、冲突链、邻域搜索和迁移 |
+| `include/kvquery/detail/simd_probe.hpp` | NEON、SSE2 与可移植的双 Key 比较掩码 |
 | `src/kvquery.cpp` | 快照构建、执行器、结果视图与文件读写 |
 | `tools/kvquery_cli.cpp` | TSV 构建、快照检查与批量查询 CLI |
 | `tests/kvquery_test.cpp` | 边界、冲突、差分、并发、重建和文件测试 |

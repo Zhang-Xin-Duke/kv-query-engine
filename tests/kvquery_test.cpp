@@ -14,6 +14,7 @@
 #include <thread>
 
 #include "kvquery/detail/neighbor_index.hpp"
+#include "kvquery/detail/simd_probe.hpp"
 
 using namespace kvquery;
 #define CHECK(x)                                                                        \
@@ -32,7 +33,8 @@ void rejects(F&& f) {
   }
   CHECK(failed);
 }
-static const std::vector<Strategy> strategies{Strategy::scalar, Strategy::prefetch, Strategy::amac};
+static const std::vector<Strategy> strategies{
+    Strategy::scalar, Strategy::prefetch, Strategy::amac, Strategy::simd};
 void compare(const std::shared_ptr<const Snapshot>& s, const std::vector<uint64_t>& keys,
              const std::map<uint64_t, std::string>& ref) {
   for (auto strategy : strategies)
@@ -148,7 +150,7 @@ void lifetime_and_concurrent_reads() {
   for (int t = 0; t < 6; ++t)
     threads.emplace_back([s, &keys, &ok] {
       for (int i = 0; i < 500; ++i) {
-        auto r = s->query(keys, {Strategy::amac, 3});
+        auto r = s->query(keys, {i % 2 ? Strategy::amac : Strategy::simd, 3});
         if (!r[0] || *r[0] != "0" || r[2] || *r[4] != "1") ok = false;
       }
     });
@@ -160,6 +162,68 @@ void lifetime_and_concurrent_reads() {
   CHECK(*held[1] == "999");
   held = BatchResult{};
   CHECK(weak.expired());
+}
+void simd_residual_queries() {
+  // Reject false matches when only the low or high 32-bit half is equal.
+  const std::array<uint64_t, 2> wanted{0x0123456789abcdefULL, 0xfedcba9876543210ULL};
+  CHECK(detail::equal_key_mask(wanted, wanted) == 3);
+  CHECK(detail::equal_key_mask(wanted, {wanted[0] ^ (1ULL << 32), wanted[1] ^ 1}) == 0);
+  CHECK(detail::equal_key_mask(wanted, {wanted[0], wanted[1] ^ (1ULL << 32)}) == 1);
+  CHECK(detail::equal_key_mask(wanted, {wanted[0] ^ 1, wanted[1]}) == 2);
+  CHECK(detail::equal_key_mask({0, UINT64_MAX}, {0, UINT64_MAX}) == 3);
+  CHECK(std::string(simd_backend()) == detail::simd_backend_name());
+#ifdef KVQUERY_FORCE_PORTABLE_SIMD
+  CHECK(std::string(simd_backend()) == "portable");
+#elif defined(__aarch64__) && defined(__ARM_NEON)
+  CHECK(std::string(simd_backend()) == "neon");
+#elif defined(__SSE2__)
+  CHECK(std::string(simd_backend()) == "sse2");
+#endif
+  CHECK(std::string(strategy_name(Strategy::simd)) == "simd");
+  using Index = detail::NeighborIndex;
+  // Unequal chain lengths and colliding misses force independent lane completion.
+  constexpr size_t count = 64;
+  Index hasher({}, static_cast<uint32_t>(static_cast<long double>(count) / 0.8 + 1));
+  std::vector<Record> records;
+  std::map<uint64_t, std::string> ref;
+  std::vector<uint64_t> misses;
+  for (uint32_t bucket : {0U, 31U}) {
+    size_t found = 0;
+    for (uint64_t k = 0; found < 34; ++k) {
+      if (hasher.bucket(k) != bucket) continue;
+      if (found++ < 32) {
+        std::string value = found % 3 ? std::to_string(k) : "";
+        records.push_back({k, value});
+        ref.emplace(k, value);
+      } else {
+        misses.push_back(k);
+      }
+    }
+  }
+  auto s = Snapshot::build(records);
+  CHECK(s->stats().collisions > 0);
+  for (size_t n : {0, 1, 2, 3, 7, 31, 32, 33, 255, 256, 257, 513}) {
+    std::vector<uint64_t> keys;
+    for (size_t i = 0; i < n; ++i)
+      keys.push_back(i % 3 ? records[(i * 17) % records.size()].key : misses[i % misses.size()]);
+    for (size_t window : {1, 2, 3, 5, 8, 31, 32, 255, 256}) {
+      auto result = s->query(keys, {Strategy::simd, window});
+      CHECK(result.size() == n);
+      for (size_t i = 0; i < n; ++i) {
+        auto it = ref.find(keys[i]);
+        CHECK(result[i].has_value() == (it != ref.end()));
+        if (it != ref.end()) CHECK(*result[i] == it->second);
+      }
+    }
+  }
+  auto held = s->query(misses, {Strategy::simd, 3});
+  CHECK(std::all_of(held.values().begin(), held.values().end(),
+                    [](const auto& value) { return !value; }));
+  auto retained = s->query(std::vector<uint64_t>{records[0].key, records[63].key},
+                           {Strategy::simd, 3});
+  s.reset();
+  CHECK(*retained[0] == records[0].value);
+  CHECK(*retained[1] == records[63].value);
 }
 struct TestDir {
   std::filesystem::path path;
@@ -343,6 +407,7 @@ int main(int argc, char** argv) {
     run("persistence", persistence);
     run("retry", neighborhood_retry);
     run("format", format_golden);
+    run("simd", simd_residual_queries);
   } catch (const std::exception& e) {
     std::cerr << e.what() << '\n';
     return 1;

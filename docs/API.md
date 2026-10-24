@@ -57,7 +57,7 @@ Build and load use temporary records/metadata as well as the final snapshot. The
 ## Queries
 
 ```cpp
-enum class Strategy { scalar, prefetch, amac };
+enum class Strategy { scalar, prefetch, amac, simd };
 
 struct QueryOptions {
     Strategy strategy = Strategy::scalar;
@@ -70,7 +70,7 @@ BatchResult Snapshot::query(std::span<const uint64_t> keys,
 
 The input span must remain valid for the duration of the synchronous call. Empty input returns an empty batch. Results preserve input order and repeated query positions. All strategies validate a window from 1 through 256; scalar otherwise ignores it.
 
-For prefetch, the window is input lookahead distance. For AMAC, it is the maximum active-state count. AMAC accepts any supported window, including non-powers of two. Query work stays on the calling thread. To use several CPU threads, invoke const queries from the application's own workers.
+For prefetch, the window is input lookahead distance. For AMAC and SIMD, it is the maximum active-state count. AMAC accepts any supported window, including non-powers of two. SIMD compares pairs of full 64-bit candidate keys and retains divergent chain positions in a residual window; single active lanes use direct comparisons. Query work stays on the calling thread. To use several CPU threads, invoke const queries from the application's own workers.
 
 ```cpp
 std::array<uint64_t, 5> keys{7, 8, 0, 7, 9};
@@ -106,6 +106,7 @@ A result batch keeps its snapshot alive. Borrowed views copied out of a batch re
 ```cpp
 Stats Snapshot::stats() const noexcept;
 const char* strategy_name(Strategy) noexcept;
+const char* simd_backend() noexcept; // "neon", "sse2", or "portable"
 ```
 
 | Field | Meaning |
@@ -138,9 +139,13 @@ Applications can catch `std::exception` at a request or load boundary, translate
 ```text
 kvquery build INPUT.tsv OUTPUT.kwv
 kvquery inspect SNAPSHOT.kwv
-kvquery query SNAPSHOT.kwv [--strategy scalar|prefetch|amac] [--window N] KEY...
+kvquery query SNAPSHOT.kwv [--strategy scalar|prefetch|amac|simd] [--window N] KEY...
 ```
 
 Build accepts unsigned decimal keys, a first-tab separator and text values. Blank lines are skipped and CRLF normalized. The CLI applies a 512 MiB TSV size limit. Inspect prints JSON statistics. Query prints one line per key with `FOUND` and hex value bytes or `MISSING`.
 
 Exit status is 0 on success, 1 on a reported operation error, and 2 for command/usage errors. Numeric overflow and negative keys are rejected.
+
+## SIMD build selection
+
+Baseline ARM64 NEON or x86 SSE2 is selected at compile time. No AVX flags or new CPU requirements are added. Other targets use the portable two-key helper. Configure with `-DKVQUERY_FORCE_PORTABLE_SIMD=ON` to test the fallback explicitly. `simd_backend()` reports the backend compiled into the library; a window of 1 uses direct single-lane comparisons.

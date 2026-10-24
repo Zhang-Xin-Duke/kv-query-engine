@@ -15,14 +15,22 @@ jobs:
             compiler: g++
             mode: Release
             sanitizer: 'OFF'
+            portable: 'OFF'
           - os: ubuntu-latest
             compiler: clang++
             mode: Debug
             sanitizer: 'OFF'
+            portable: 'OFF'
           - os: ubuntu-latest
             compiler: clang++
             mode: Debug
             sanitizer: 'ON'
+            portable: 'OFF'
+          - os: ubuntu-latest
+            compiler: g++
+            mode: Release
+            sanitizer: 'OFF'
+            portable: 'ON'
     runs-on: ${{ matrix.os }}
     env:
       CXX: ${{ matrix.compiler }}
@@ -31,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake -S . -B build/ci -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DKVQUERY_SANITIZERS=${{ matrix.sanitizer }}
+        run: cmake -S . -B build/ci -DCMAKE_BUILD_TYPE=${{ matrix.mode }} -DKVQUERY_SANITIZERS=${{ matrix.sanitizer }} -DKVQUERY_FORCE_PORTABLE_SIMD=${{ matrix.portable }}
       - name: Build
         run: cmake --build build/ci --parallel 2
       - name: Test

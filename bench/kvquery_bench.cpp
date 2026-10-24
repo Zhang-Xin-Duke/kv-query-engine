@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     }
     std::vector<Method> methods{{"unordered_map", {Strategy::scalar, 1}},
                                 {"scalar", {Strategy::scalar, 1}}};
-    for (auto strategy : {Strategy::prefetch, Strategy::amac})
+    for (auto strategy : {Strategy::prefetch, Strategy::amac, Strategy::simd})
       for (size_t window : {8, 32, 64})
         methods.push_back({strategy_name(strategy), {strategy, window}});
     std::vector<Measurement> results;
@@ -205,7 +205,8 @@ int main(int argc, char** argv) {
     ::uname(&host);
     std::cout << std::setprecision(12) << "{\n  \"schema_version\":1,\n  \"compiler\":\""
               << escaped(__VERSION__) << "\",\n  \"os\":\"" << escaped(host.sysname)
-              << "\",\n  \"arch\":\"" << escaped(host.machine) << "\",\n  \"records\":" << count
+              << "\",\n  \"arch\":\"" << escaped(host.machine)
+              << "\",\n  \"simd_backend\":\"" << simd_backend() << "\",\n  \"records\":" << count
               << ",\n  \"batch\":" << batch << ",\n  \"queries_per_round\":" << queries
               << ",\n  \"rounds\":" << rounds << ",\n  \"seed\":" << seed
               << ",\n  \"value_bytes\":" << value_size << ",\n  \"requested_hit_rate\":" << hit_rate

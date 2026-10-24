@@ -33,6 +33,12 @@ Standalone C++20/CMake packaging; unsigned link encoding; full modular wrapping 
 small tables; reserved value offset so zero keys/empty values are representable;
 explicit duplicate rejection; bounded rebuild retries with a new mixer seed and larger table; ordered batch results retaining
 snapshot ownership; checked portable persistence; CLI; tests and synthetic benchmarks.
+
+The optional SIMD executor and `detail/simd_probe.hpp` add native two-key NEON/SSE2
+comparison masks, residual-state scheduling, backend reporting and a forced portable
+fallback. This implementation follows the existing multi-query probing idea while
+retaining the supplied index layout; no SIMD implementation body was copied from
+the reference artifact.
 The repository contains standalone code, tests, and documentation. Source configuration and business data remain outside this project.
 
 ## Background references

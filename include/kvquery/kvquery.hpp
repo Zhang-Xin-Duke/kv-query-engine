@@ -14,8 +14,10 @@ struct Record {
   uint64_t key;
   std::string value;
 };
-enum class Strategy { scalar, prefetch, amac };
+enum class Strategy { scalar, prefetch, amac, simd };
 const char* strategy_name(Strategy) noexcept;
+// Compiled SIMD backend: "neon", "sse2", or "portable".
+const char* simd_backend() noexcept;
 struct QueryOptions {
   Strategy strategy = Strategy::scalar;
   size_t window = 32;

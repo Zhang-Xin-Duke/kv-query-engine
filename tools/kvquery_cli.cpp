@@ -18,13 +18,14 @@ Strategy strategy(std::string_view s) {
   if (s == "scalar") return Strategy::scalar;
   if (s == "prefetch") return Strategy::prefetch;
   if (s == "amac") return Strategy::amac;
+  if (s == "simd") return Strategy::simd;
   throw std::invalid_argument("unknown strategy: " + std::string(s));
 }
 void usage() {
   std::cerr
       << "KVQueryEngine: High-Performance KV Query Engine for Read-Heavy Workloads\n"
          "  kvquery build INPUT.tsv OUTPUT.kwv\n"
-         "  kvquery query SNAPSHOT.kwv [--strategy scalar|prefetch|amac] [--window N] KEY...\n"
+         "  kvquery query SNAPSHOT.kwv [--strategy scalar|prefetch|amac|simd] [--window N] KEY...\n"
          "  kvquery inspect SNAPSHOT.kwv\n"
          "TSV: unsigned decimal key<TAB>text value; query values are printed as hex.\n";
 }

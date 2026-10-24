@@ -15,6 +15,7 @@
 #include <system_error>
 
 #include "kvquery/detail/neighbor_index.hpp"
+#include "kvquery/detail/simd_probe.hpp"
 
 namespace kvquery {
 using Index = detail::NeighborIndex;
@@ -94,9 +95,12 @@ const char* strategy_name(Strategy s) noexcept {
       return "prefetch";
     case Strategy::amac:
       return "amac";
+    case Strategy::simd:
+      return "simd";
   }
   return "invalid";
 }
+const char* simd_backend() noexcept { return detail::simd_backend_name(); }
 std::shared_ptr<const Snapshot> Snapshot::build(std::span<const Record> records,
                                                 BuildOptions options) {
   validate_options(options);
@@ -158,7 +162,7 @@ BatchResult Snapshot::query(std::span<const uint64_t> keys, QueryOptions options
   if (options.window < 1 || options.window > 256)
     throw std::invalid_argument("window must be in [1,256]");
   if (options.strategy != Strategy::scalar && options.strategy != Strategy::prefetch &&
-      options.strategy != Strategy::amac)
+      options.strategy != Strategy::amac && options.strategy != Strategy::simd)
     throw std::invalid_argument("invalid query strategy");
   BatchResult out;
   out.owner_ = shared_from_this();
@@ -176,7 +180,7 @@ BatchResult Snapshot::query(std::span<const uint64_t> keys, QueryOptions options
       if (ahead < keys.size() - i) idx.prefetch(idx.bucket(keys[i + ahead]));
       store(i, idx.find(keys[i]));
     }
-  } else {
+  } else if (options.strategy == Strategy::amac) {
     // Adapted from supplied raw_hash_map.h::amac_find: independent lookup states
     // advance one link per visit; completed states refill from remaining input.
     // Input positions preserve duplicate keys and order; portable prefetch also
@@ -214,6 +218,69 @@ BatchResult Snapshot::query(std::span<const uint64_t> keys, QueryOptions options
           --active;
         }
       }
+  } else {
+    // Residual states retain divergent chain positions. Two active candidates
+    // are gathered before one vector comparison; completed lanes refill in place.
+    struct State {
+      size_t input;
+      uint32_t bucket;
+      bool active;
+    };
+    std::array<State, 256> states;
+    const size_t width = std::min(options.window, keys.size());
+    size_t next_input = 0, active = width;
+    const auto assign = [&](State& s) {
+      s = {next_input, idx.bucket(keys[next_input]), true};
+      ++next_input;
+      idx.prefetch(s.bucket);
+    };
+    for (size_t i = 0; i < width; ++i) assign(states[i]);
+    const auto advance = [&](State& state, const Index::FlatNode& node, bool matched) {
+      if (!node.IsEmpty() && matched)
+        store(state.input, &node);
+      else if (!node.IsEmpty() && node.ChainLink()) {
+        state.bucket = idx.next(state.bucket, node.ChainLink());
+        idx.prefetch(state.bucket);
+        return;
+      }
+      if (next_input < keys.size())
+        assign(state);
+      else {
+        state.active = false;
+        --active;
+      }
+    };
+    while (active) {
+      size_t base = 0;
+      for (; base + 1 < width; base += 2) {
+        auto& a = states[base];
+        auto& b = states[base + 1];
+        if (a.active && b.active) {
+          const auto& na = idx.node(a.bucket);
+          const auto& nb = idx.node(b.bucket);
+          const unsigned matches = detail::equal_key_mask(
+              {keys[a.input], keys[b.input]}, {na.key, nb.key});
+          advance(a, na, (matches & 1U) != 0);
+          advance(b, nb, (matches & 2U) != 0);
+        } else {
+          // Only draining or an odd window leaves a single lane; avoid padding
+          // loads and compare that lane directly without accessing inactive state.
+          if (a.active) {
+            const auto& node = idx.node(a.bucket);
+            advance(a, node, node.key == keys[a.input]);
+          }
+          if (b.active) {
+            const auto& node = idx.node(b.bucket);
+            advance(b, node, node.key == keys[b.input]);
+          }
+        }
+      }
+      if (base < width && states[base].active) {
+        auto& state = states[base];
+        const auto& node = idx.node(state.bucket);
+        advance(state, node, node.key == keys[state.input]);
+      }
+    }
   }
   return out;
 }
