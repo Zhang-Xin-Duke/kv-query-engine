@@ -15,7 +15,7 @@ parser.add_argument("--binary", default="build/release/kvquery_bench")
 parser.add_argument("--output", default="bench/results/server-suite.json")
 parser.add_argument("--repeats", type=int, default=3)
 parser.add_argument("--build-description", default="CMake Release, default optimization; no -march=native")
-parser.add_argument("--suite", choices=("standard", "inline"), default="standard")
+parser.add_argument("--suite", choices=("standard", "inline", "inline-scale"), default="standard")
 args = parser.parse_args()
 if not 1 <= args.repeats <= 20:
     parser.error("repeats must be in [1,20]")
@@ -39,6 +39,9 @@ if args.suite == "inline":
         ("low-hit-six", 1_000_000, 256, 262144, 6, .3, "uniform"),
         ("hot-six", 1_000_000, 256, 262144, 6, .9, "hot"),
     ]
+elif args.suite == "inline-scale":
+    workloads = [(f"scale-{n // 1_000_000}m-six", n, 256, 1048576, 6, .9, "uniform")
+                 for n in (1_000_000, 4_000_000, 8_000_000)]
 model = platform.processor()
 if platform.system() == "Darwin":
     model = subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string"], text=True).strip()
@@ -68,7 +71,7 @@ for name, records, batch, queries, value_bytes, hit, distribution in workloads:
                    "--queries", str(queries), "--value-bytes", str(value_bytes),
                    "--hit-rate", str(hit), "--distribution", distribution,
                    "--seed", str(20261021 + repeat), "--rounds", "3"]
-        if args.suite == "inline":
+        if args.suite.startswith("inline"):
             command += ["--compare-inline", "1", "--value-layout",
                         "mixed" if name == "mixed-6-32" else "inline"]
         raw = subprocess.check_output(command, text=True)

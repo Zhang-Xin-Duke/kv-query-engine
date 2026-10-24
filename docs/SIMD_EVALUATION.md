@@ -16,7 +16,7 @@ scalar; the existing 16-byte index and file format are preserved.
 
 ## Server experiment
 
-Measured source revision: `f61ff21e6f2fc3ad7a06c2d407e70346c4dafa44`.
+Measured source revision: `14311dee25ecf9fdd398afb1cb365e28454a60f5`.
 Recorded on October 24, 2026 on the Duke Linux course server: Intel Xeon E5-2440 v2,
 8 cores / 16 logical CPUs, approximately 16 GB RAM, Ubuntu 22.04.5, GCC 11.4.0,
 `-std=c++20 -O3 -DNDEBUG`, pinned to CPU 0. Native backend: SSE2.
@@ -27,27 +27,26 @@ million keys per second, with a fixed window of 32 for AMAC and SIMD.
 
 | Workload | unordered_map | Scalar | AMAC/32 | SIMD/32 | SIMD / Scalar |
 |---|---:|---:|---:|---:|---:|
-| small-uniform | 18.65 | 36.17 | 35.36 | 34.80 | 0.96× |
-| large-single | 1.61 | 2.81 | 2.84 | 2.92 | 1.04× |
-| large-batch32 | 6.21 | 14.75 | 16.05 | 15.92 | 1.08× |
-| large-batch256 | 6.35 | 15.78 | 21.66 | 21.56 | 1.37× |
-| large-batch1024 | 5.92 | 15.94 | 22.56 | 22.58 | 1.42× |
-| large-low-hit | 5.26 | 19.89 | 28.42 | 28.39 | 1.43× |
-| large-hot | 9.25 | 32.63 | 40.23 | 39.44 | 1.21× |
-| wide-values | 7.32 | 17.66 | 20.84 | 20.87 | 1.18× |
+| small-uniform | 17.78 | 32.97 | 33.50 | 32.85 | 1.00× |
+| large-single | 1.59 | 2.77 | 2.96 | 2.89 | 1.04× |
+| large-batch32 | 6.13 | 14.26 | 15.68 | 15.75 | 1.10× |
+| large-batch256 | 6.23 | 15.33 | 21.49 | 21.15 | 1.38× |
+| large-batch1024 | 5.86 | 15.30 | 21.98 | 22.13 | 1.45× |
+| large-low-hit | 5.25 | 19.62 | 28.22 | 28.03 | 1.43× |
+| large-hot | 9.25 | 31.77 | 39.19 | 38.54 | 1.21× |
+| wide-values | 7.24 | 17.18 | 20.76 | 20.64 | 1.20× |
 
 ## Findings
 
-For `large-batch1024`, SIMD/32 reaches 22.58 Mkeys/s versus 15.94 for Scalar and
-5.92 for `std::unordered_map`: approximately 1.42× and 3.81× throughput. AMAC/32
-reaches 22.56 Mkeys/s, so the run supports similar performance for the two
-interleaved executors in that workload. It does not establish a meaningful
-advantage for SIMD over AMAC.
+For `large-batch1024`, SIMD/32 reaches 22.13 Mkeys/s versus 15.30 for Scalar and
+5.86 for `std::unordered_map`: approximately 1.45× and 3.78× throughput. AMAC/32
+reaches 21.98 Mkeys/s, providing similar performance in this workload.
 
-SIMD/32 improves on Scalar in the other multi-key large-working-set cases as well.
-For the small dataset, Scalar is faster. A single-key batch never fills a vector
-pair and uses a direct comparison; that row does not measure vector-comparison
-acceleration. Scalar remains the default, with other strategies selected per call.
+These standard workloads use 32/256-byte external values. The separate
+[paired inlining experiment](INLINE_EVALUATION.md) covers small and mixed values.
+For the small dataset SIMD and Scalar are close; a single-key batch uses a direct
+comparison and does not measure vector-comparison acceleration. Scalar remains
+the default, with other strategies selected per call.
 
 The executor combines prefetching, interleaved state progression and SIMD key
 comparison. These measurements evaluate their combined query path. A separate
@@ -55,15 +54,15 @@ ablation would be needed to isolate the vector comparison's contribution.
 
 ## Correctness and backend evidence
 
-Native NEON, forced-portable and ASan/UBSan local builds passed all ten CTest groups.
-The server's native SSE2 build passed the same eight C++ groups and two Python
+Native NEON, forced-portable and ASan/UBSan local builds passed all eleven CTest groups.
+The server's native SSE2 build passed the same nine C++ groups and two Python
 integration checks. GCC disassembly contains `pcmpeqd` and `pmovmskb`; NEON object
 inspection contains `cmeq.2d`. Tests check full 64-bit equality, empty/zero keys,
 colliding misses, duplicate queries, irregular windows, partial batches, retained
 results and concurrent readers.
 
 Linux CI covers GCC Release, Clang Debug, Clang ASan/UBSan and forced-portable GCC
-Release. Each configuration runs all ten CTest groups.
+Release. Each configuration runs all eleven CTest groups.
 
 ## Reproduction and data
 
@@ -71,7 +70,7 @@ Release. Each configuration runs all ten CTest groups.
 bash bench/run_linux.sh bench/results/linux-suite 0
 ```
 
-- [Raw server results and source/binary hashes](../bench/results/duke-x86-2026-10-24.json)
-- [Complete throughput and batch P99 report](../bench/results/duke-x86-2026-10-24.md)
-- [Recorded environment](../bench/results/duke-x86-2026-10-24.environment.txt)
-- [Server test output](../bench/results/duke-x86-2026-10-24.tests.txt)
+- [Raw server results and source/binary hashes](../bench/results/duke-x86-inline-2026-10-24.json)
+- [Complete throughput and batch P99 report](../bench/results/duke-x86-inline-2026-10-24.md)
+- [Recorded environment](../bench/results/duke-x86-inline-2026-10-24.environment.txt)
+- [Server test output](../bench/results/duke-x86-inline-2026-10-24.tests.txt)

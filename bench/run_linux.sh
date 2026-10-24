@@ -39,7 +39,7 @@ taskset -c "$cpu" python3 bench/run_suite.py --binary build/server/kvquery_bench
   --output "${output_prefix}.json" --repeats 3 \
   --suite "$suite" \
   --build-description "Direct ${cxx_binary} -std=c++20 -O3 -DNDEBUG; no -march=native"
-if [[ "$suite" == inline ]]; then
+if [[ "$suite" == inline* ]]; then
   python3 bench/summarize_inline.py --input "${output_prefix}.json" --output "${output_prefix}.md"
 else
   python3 bench/summarize.py --input "${output_prefix}.json" --output "${output_prefix}.md"

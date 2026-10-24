@@ -130,22 +130,22 @@ Each workload runs in **three independent processes, three rounds per process**.
 
 | Workload | unordered_map | Scalar | Prefetch/32 | AMAC/32 | SIMD/32 |
 |---|---:|---:|---:|---:|---:|
-| small-uniform | 18.65 | 36.17 | 33.73 | 35.36 | 34.80 |
-| large-single | 1.61 | 2.81 | 3.00 | 2.84 | 2.92 |
-| large-batch32 | 6.21 | 14.75 | 15.88 | 16.05 | 15.92 |
-| large-batch256 | 6.35 | 15.78 | 19.12 | 21.66 | 21.56 |
-| large-batch1024 | 5.92 | 15.94 | 19.72 | 22.56 | 22.58 |
-| large-low-hit | 5.26 | 19.89 | 24.97 | 28.42 | 28.39 |
-| large-hot | 9.25 | 32.63 | 38.67 | 40.23 | 39.44 |
-| wide-values | 7.32 | 17.66 | 19.77 | 20.84 | 20.87 |
+| small-uniform | 17.78 | 32.97 | 31.40 | 33.50 | 32.85 |
+| large-single | 1.59 | 2.77 | 2.96 | 2.96 | 2.89 |
+| large-batch32 | 6.13 | 14.26 | 15.52 | 15.68 | 15.75 |
+| large-batch256 | 6.23 | 15.33 | 18.96 | 21.49 | 21.15 |
+| large-batch1024 | 5.86 | 15.30 | 19.30 | 21.98 | 22.13 |
+| large-low-hit | 5.25 | 19.62 | 24.64 | 28.22 | 28.03 |
+| large-hot | 9.25 | 31.77 | 36.98 | 39.19 | 38.54 |
+| wide-values | 7.24 | 17.18 | 19.25 | 20.76 | 20.64 |
 
-For `large-batch1024` (one million records, 32-byte values, batches of 1,024 keys, 90% target hit rate), SIMD/32 reaches **22.58 Mkeys/s**: **1.42× Scalar** and **3.81× `std::unordered_map`**. AMAC/32 reaches 22.56 Mkeys/s in the same workload. Small working sets favor Scalar in this run; batch size, working set and hit distribution determine the useful execution strategy.
+For `large-batch1024` (one million records, 32-byte values, batches of 1,024 keys, 90% target hit rate), SIMD/32 reaches **22.13 Mkeys/s**: **1.45× Scalar** and **3.78× `std::unordered_map`**. AMAC/32 reaches 21.98 Mkeys/s in the same workload. These 32/256-byte workloads use external values even with inlining enabled; they measure the final query implementation. Batch size, working set and hit distribution guide executor selection.
 
 All methods process identical inputs and return input-ordered value views. Full result equality is checked outside the timed sections. Timing includes result allocation, lookup, ownership, value length/end-byte consumption, and result destruction. These are in-process batch-lookup measurements.
 
-- [Raw server results and source/binary hashes](bench/results/duke-x86-2026-10-24.json)
-- [Full throughput and batch P99 report](bench/results/duke-x86-2026-10-24.md)
-- [Recorded server environment](bench/results/duke-x86-2026-10-24.environment.txt)
+- [Raw server results and source/binary hashes](bench/results/duke-x86-inline-2026-10-24.json)
+- [Full throughput and batch P99 report](bench/results/duke-x86-inline-2026-10-24.md)
+- [Recorded server environment](bench/results/duke-x86-inline-2026-10-24.environment.txt)
 - [Workloads and measurement protocol](docs/BENCHMARKS.md)
 - [SIMD implementation and analysis](docs/SIMD_EVALUATION.md)
 
@@ -156,6 +156,50 @@ bash bench/run_linux.sh bench/results/linux-suite 0
 ```
 
 A CMake build can also run the suite through `bench/run_suite.py`; its `--build-description` option records the actual compilation setup.
+
+### Small-value inlining: paired comparison
+
+Both layouts run in the same process with identical records and query traces,
+rotating and alternating measurement order. The table uses one million records,
+batches of 256 keys, a 90% hit target and SIMD/32. Rates are process medians in
+Mkeys/s; ratios are medians of matched per-process ratios. Logical storage counts
+index nodes plus the external value region, excluding allocator overhead and
+other process memory.
+
+| Value distribution | External-only | Inlining enabled | Paired ratio | Logical storage MB, before → after |
+|---|---:|---:|---:|---:|
+| 1 byte | 29.34 | 31.82 | 1.083× | 21.00 → 20.00 |
+| 2 bytes | 27.84 | 32.21 | 1.157× | 22.00 → 20.00 |
+| 4 bytes | 25.47 | 31.76 | 1.244× | 24.00 → 20.00 |
+| 6 bytes | 24.26 | 31.78 | 1.310× | 26.00 → 20.00 |
+| 7 bytes (control) | 24.06 | 23.89 | 0.993× | 27.00 → 27.00 |
+| 32 bytes (control) | 21.15 | 20.94 | 0.987× | 52.00 → 52.00 |
+| 50% 6-byte + 50% 32-byte | 22.27 | 21.44 | 0.960× | 39.00 → 36.00 |
+
+For six-byte values, inlining improves throughput by **31.0%** and reduces logical
+storage by **23.1%**, keeping every node at 16 bytes. Scalar improves by 23.6% and
+AMAC/32 by 28.1% in the same case. The gain depends on value access and working-set
+size: the cache-resident six-byte case improves SIMD by 2.2%, and a 30%-hit case by
+9.7%. The full report retains every length from zero through six and all controls.
+
+The half-small/half-large case reduces storage by 7.7% but lowers SIMD throughput
+by 4.0% (Scalar by 6.9%). Mixed layouts add a representation decision to successful
+lookups; this tradeoff should be measured for the application's value distribution.
+The external-only build option provides a direct alternative:
+
+```cpp
+kvquery::BuildOptions options;
+options.inline_small_values = false;
+auto snapshot = kvquery::Snapshot::build(records, options);
+```
+
+- [Paired raw results, hashes and all windows](bench/results/duke-inline-2026-10-24.json)
+- [All 16 cases, process ranges and storage counts](bench/results/duke-inline-2026-10-24.md)
+- [Inline layout, lifetime and implementation details](docs/INLINE_EVALUATION.md)
+
+```sh
+bash bench/run_linux.sh bench/results/linux-inline 0 inline
+```
 
 ## Validation
 

@@ -86,8 +86,6 @@ python3 bench/summarize.py --input bench/results/linux-suite.json \
 source hashes and binary hash. Source or binary changes during a run fail its
 integrity checks. `--build-description` records the actual build process.
 
-## Reports
-
 ## Paired small-value comparison
 
 ```sh
@@ -116,8 +114,16 @@ The summary uses per-workload process medians and fixed window 32 for comparison
 Raw JSON retains every window and per-process percentile. Speedups compare methods
 within the same workload; they are not averaged across incompatible batch sizes.
 
-- [Raw server JSON](../bench/results/duke-x86-2026-10-24.json)
-- [Complete throughput and P99 report](../bench/results/duke-x86-2026-10-24.md)
-- [Environment and swap-counter record](../bench/results/duke-x86-2026-10-24.environment.txt)
-- [Server correctness checks](../bench/results/duke-x86-2026-10-24.tests.txt)
+- [Raw server JSON](../bench/results/duke-x86-inline-2026-10-24.json)
+- [Complete throughput and P99 report](../bench/results/duke-x86-inline-2026-10-24.md)
+- [Environment and swap-counter record](../bench/results/duke-x86-inline-2026-10-24.environment.txt)
+- [Server correctness checks](../bench/results/duke-x86-inline-2026-10-24.tests.txt)
 - [SIMD analysis](SIMD_EVALUATION.md)
+
+- [Paired inline/external raw data](../bench/results/duke-inline-2026-10-24.json)
+- [All paired cases and process ranges](../bench/results/duke-inline-2026-10-24.md)
+- [Inline representation and findings](INLINE_EVALUATION.md)
+
+Current reports measure revision `14311dee25ecf9fdd398afb1cb365e28454a60f5`.
+The earlier `duke-x86-2026-10-24.*` files retain the preceding SIMD-only run as
+historical evidence; current README tables use the rerun of the final implementation.

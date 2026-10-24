@@ -171,23 +171,47 @@ int main() {
 
 | Workload | unordered_map | Scalar | Prefetch/32 | AMAC/32 | SIMD/32 |
 |---|---:|---:|---:|---:|---:|
-| small-uniform | 18.65 | 36.17 | 33.73 | 35.36 | 34.80 |
-| large-single | 1.61 | 2.81 | 3.00 | 2.84 | 2.92 |
-| large-batch32 | 6.21 | 14.75 | 15.88 | 16.05 | 15.92 |
-| large-batch256 | 6.35 | 15.78 | 19.12 | 21.66 | 21.56 |
-| large-batch1024 | 5.92 | 15.94 | 19.72 | 22.56 | 22.58 |
-| large-low-hit | 5.26 | 19.89 | 24.97 | 28.42 | 28.39 |
-| large-hot | 9.25 | 32.63 | 38.67 | 40.23 | 39.44 |
-| wide-values | 7.32 | 17.66 | 19.77 | 20.84 | 20.87 |
+| small-uniform | 17.78 | 32.97 | 31.40 | 33.50 | 32.85 |
+| large-single | 1.59 | 2.77 | 2.96 | 2.96 | 2.89 |
+| large-batch32 | 6.13 | 14.26 | 15.52 | 15.68 | 15.75 |
+| large-batch256 | 6.23 | 15.33 | 18.96 | 21.49 | 21.15 |
+| large-batch1024 | 5.86 | 15.30 | 19.30 | 21.98 | 22.13 |
+| large-low-hit | 5.25 | 19.62 | 24.64 | 28.22 | 28.03 |
+| large-hot | 9.25 | 31.77 | 36.98 | 39.19 | 38.54 |
+| wide-values | 7.24 | 17.18 | 19.25 | 20.76 | 20.64 |
 
-百万条记录、每批 1024 个 Key 的负载下，SIMD/32 达到 **22.58 Mkeys/s**，约为 Scalar 的 **1.42 倍**、`std::unordered_map` 的 **3.81 倍**；同一负载的 AMAC/32 为 22.56 Mkeys/s。小工作集下 Scalar 更快，执行器应按具体负载选择。
+百万条记录、每批 1024 个 Key 的负载下，SIMD/32 达到 **22.13 Mkeys/s**，约为 Scalar 的 **1.45 倍**、`std::unordered_map` 的 **3.78 倍**；同一负载的 AMAC/32 为 21.98 Mkeys/s。这些 32/256 字节负载使用外部 Value，测量的是最终查询实现。执行器应按批次、工作集和命中分布选择。
 
 所有路径使用相同输入并返回有序数据视图，完整结果比对在计时外完成。计时包含结果分配、查询、所有权管理、Value 长度与首尾字节读取，以及结果销毁。
 
-[原始结果与哈希](bench/results/duke-x86-2026-10-24.json) · [完整吞吐与 P99 报告](bench/results/duke-x86-2026-10-24.md) · [环境记录](bench/results/duke-x86-2026-10-24.environment.txt) · [测量方法](docs/BENCHMARKS.md)
+[原始结果与哈希](bench/results/duke-x86-inline-2026-10-24.json) · [完整吞吐与 P99 报告](bench/results/duke-x86-inline-2026-10-24.md) · [环境记录](bench/results/duke-x86-inline-2026-10-24.environment.txt) · [测量方法](docs/BENCHMARKS.md)
 
 ```sh
 bash bench/run_linux.sh bench/results/linux-suite 0
+```
+
+### 小 Value 内联对比
+
+在同一个进程内比较两种布局，使用相同记录和查询输入，并轮换测量顺序。下表均为百万条记录、每批 256 个 Key、90% 目标命中率、SIMD/32；吞吐单位为 Mkeys/s。逻辑空间只包含索引和外部 Value 区域，不等于进程 RSS。
+
+| Value distribution | External-only | Inlining enabled | Paired ratio | Logical storage MB, before → after |
+|---|---:|---:|---:|---:|
+| 1 byte | 29.34 | 31.82 | 1.083× | 21.00 → 20.00 |
+| 2 bytes | 27.84 | 32.21 | 1.157× | 22.00 → 20.00 |
+| 4 bytes | 25.47 | 31.76 | 1.244× | 24.00 → 20.00 |
+| 6 bytes | 24.26 | 31.78 | 1.310× | 26.00 → 20.00 |
+| 7 bytes (control) | 24.06 | 23.89 | 0.993× | 27.00 → 27.00 |
+| 32 bytes (control) | 21.15 | 20.94 | 0.987× | 52.00 → 52.00 |
+| 50% 6-byte + 50% 32-byte | 22.27 | 21.44 | 0.960× | 39.00 → 36.00 |
+
+6 字节 Value 的 SIMD 吞吐提高 **31.0%**，逻辑空间减少 **23.1%**，索引节点保持 16 字节；同一负载的 Scalar 提高 23.6%，AMAC/32 提高 28.1%。小工作集的 SIMD 收益为 2.2%，30% 命中率时为 9.7%，收益随负载变化。
+
+6/32 字节各占一半时，逻辑空间减少 7.7%，但 SIMD 吞吐降低 4.0%、Scalar 降低 6.9%。混合布局增加了命中后的表示判断，可以设置 `BuildOptions::inline_small_values=false` 使用全部外置布局。
+
+[16 类完整对比与进程范围](bench/results/duke-inline-2026-10-24.md) · [原始数据](bench/results/duke-inline-2026-10-24.json) · [内联实现](docs/INLINE_EVALUATION.md)
+
+```sh
+bash bench/run_linux.sh bench/results/linux-inline 0 inline
 ```
 
 ## 测试与验证

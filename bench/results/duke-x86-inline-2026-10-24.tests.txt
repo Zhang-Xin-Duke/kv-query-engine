@@ -1,0 +1,11 @@
+edges passed
+collisions passed
+randomized passed
+concurrent passed
+persistence passed
+retry passed
+format passed
+simd passed
+inline passed
+CLI roundtrip and errors passed
+benchmark validation and JSON schema passed
