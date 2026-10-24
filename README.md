@@ -121,15 +121,38 @@ Link the CMake target `kvquery`. Keep either the result batch or its source snap
 
 The benchmark design follows the NeighborHash paper and its public reproduction artifact [[1]](#reference-1), [[2]](#reference-2).
 
-The benchmark compares `std::unordered_map`, scalar index lookup, lookahead prefetch, AMAC, and SIMD over identical inputs. Workloads vary table size, batch size, value length, hit rate, and access distribution. Reports include throughput and batch P50/P95/P99 wall latency, together with commands, compiler, hardware, and source hashes.
+All results below were measured on the **Duke Linux course server** on October 24, 2026: Intel Xeon E5-2440 v2 (8 cores / 16 logical CPUs), approximately 16 GB RAM, Ubuntu 22.04.5, GCC 11.4.0, and `-std=c++20 -O3 -DNDEBUG`. The single-threaded benchmark is pinned to CPU 0; the native SIMD backend is SSE2. No `-march=native` flags are used.
 
-The [SIMD evaluation](docs/SIMD_EVALUATION.md) records the current implementation and its measured trade-offs. The [benchmark guide](docs/BENCHMARKS.md) includes the reference design's published server evaluation and explains how to run the current engine's server suite. Reference results are organized by their source implementation and experiment configuration.
+Each workload runs in **three independent processes, three rounds per process**. The table reports median throughput in **million keys per second**. Prefetch, AMAC and SIMD use a fixed window of 32 here; all tested windows and batch P50/P95/P99 remain in the raw results.
+
+| Workload | unordered_map | Scalar | Prefetch/32 | AMAC/32 | SIMD/32 |
+|---|---:|---:|---:|---:|---:|
+| small-uniform | 18.65 | 36.17 | 33.73 | 35.36 | 34.80 |
+| large-single | 1.61 | 2.81 | 3.00 | 2.84 | 2.92 |
+| large-batch32 | 6.21 | 14.75 | 15.88 | 16.05 | 15.92 |
+| large-batch256 | 6.35 | 15.78 | 19.12 | 21.66 | 21.56 |
+| large-batch1024 | 5.92 | 15.94 | 19.72 | 22.56 | 22.58 |
+| large-low-hit | 5.26 | 19.89 | 24.97 | 28.42 | 28.39 |
+| large-hot | 9.25 | 32.63 | 38.67 | 40.23 | 39.44 |
+| wide-values | 7.32 | 17.66 | 19.77 | 20.84 | 20.87 |
+
+For `large-batch1024` (one million records, 32-byte values, batches of 1,024 keys, 90% target hit rate), SIMD/32 reaches **22.58 Mkeys/s**: **1.42× Scalar** and **3.81× `std::unordered_map`**. AMAC/32 reaches 22.56 Mkeys/s in the same workload. Small working sets favor Scalar in this run; batch size, working set and hit distribution determine the useful execution strategy.
+
+All methods process identical inputs and return input-ordered value views. Full result equality is checked outside the timed sections. Timing includes result allocation, lookup, ownership, value length/end-byte consumption, and result destruction. These are in-process batch-lookup measurements.
+
+- [Raw server results and source/binary hashes](bench/results/duke-x86-2026-10-24.json)
+- [Full throughput and batch P99 report](bench/results/duke-x86-2026-10-24.md)
+- [Recorded server environment](bench/results/duke-x86-2026-10-24.environment.txt)
+- [Workloads and measurement protocol](docs/BENCHMARKS.md)
+- [SIMD implementation and analysis](docs/SIMD_EVALUATION.md)
+
+Reproduce the complete build, correctness checks and 24-process suite on a Linux host with GCC, Python 3, `ar`, and `taskset`:
 
 ```sh
-build/release/kvquery_bench --records 1000000 --batch 256 --queries 262144 --rounds 3
-python3 bench/run_suite.py --output bench/results/server-suite.json
-python3 bench/summarize.py --input bench/results/server-suite.json --output bench/results/server-report.md
+bash bench/run_linux.sh bench/results/linux-suite 0
 ```
+
+A CMake build can also run the suite through `bench/run_suite.py`; its `--build-description` option records the actual compilation setup.
 
 ## Validation
 

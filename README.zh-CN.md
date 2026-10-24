@@ -162,30 +162,34 @@ int main() {
 
 ## 性能评测
 
-评测围绕数据规模、批大小、命中率、访问分布和 Value 长度展开。基准比较普通哈希表、紧凑索引 Scalar、前瞻预取、AMAC 与 SIMD，输出吞吐和整批请求的 P50/P95/P99。
+基准设计参考 NeighborHash 论文及其公开复现工程 [[1]](#reference-1), [[2]](#reference-2)。以下结果全部来自 2026-10-24 的 Duke Linux 课程服务器：Xeon E5-2440 v2、8 核 16 线程、约 16 GB 内存、Ubuntu 22.04.5、GCC 11.4.0，使用 `-std=c++20 -O3 -DNDEBUG`，固定 CPU 0，SIMD 后端为 SSE2。
 
-原设计文档对应的 [CIKM 2024 论文](https://arxiv.org/pdf/2409.00400)与[公开复现仓库](https://github.com/slow-steppers/NeighborHash)提供了服务器实验。下面摘录其 Table 3：Linux 服务器、Intel Xeon Gold 5218、16 GB 数据集、90% 命中率、负载因子 0.8。
+8 类负载各运行 3 个独立进程，每进程 3 轮。表格为进程中位数，单位是每秒百万次 Key 查询；Prefetch、AMAC、SIMD 统一展示窗口 32。
 
-**参考实现的服务器消融实验**
+| Workload | unordered_map | Scalar | Prefetch/32 | AMAC/32 | SIMD/32 |
+|---|---:|---:|---:|---:|---:|
+| small-uniform | 18.65 | 36.17 | 33.73 | 35.36 | 34.80 |
+| large-single | 1.61 | 2.81 | 3.00 | 2.84 | 2.92 |
+| large-batch32 | 6.21 | 14.75 | 15.88 | 16.05 | 15.92 |
+| large-batch256 | 6.35 | 15.78 | 19.12 | 21.66 | 21.56 |
+| large-batch1024 | 5.92 | 15.94 | 19.72 | 22.56 | 22.58 |
+| large-low-hit | 5.26 | 19.89 | 24.97 | 28.42 | 28.39 |
+| large-hot | 9.25 | 32.63 | 38.67 | 40.23 | 39.44 |
+| wide-values | 7.32 | 17.66 | 19.77 | 20.84 | 20.87 |
 
-| 实现 | 吞吐量（MOPS） | 平均探测缓存行数 |
-|---|---:|---:|
-| CoalescedHashing | 19 | 1.72 |
-| PerfectCellarHash | 23 | 1.48 |
-| NeighborProbing | 30 | 1.34 |
-| NeighborHash | 39 | 1.14 |
+百万条记录、每批 1024 个 Key 的负载下，SIMD/32 达到 **22.58 Mkeys/s**，约为 Scalar 的 **1.42 倍**、`std::unordered_map` 的 **3.81 倍**；同一负载的 AMAC/32 为 22.56 Mkeys/s。小工作集下 Scalar 更快，执行器应按具体负载选择。
 
-这组实验解释了节点迁移、邻近探测与内联链表示的设计动机。本项目提供独立基准工具，用统一查询语义评估当前引擎。服务器配置、测量范围、参考实验和复现命令集中在[性能文档](docs/BENCHMARKS.md)。
+所有路径使用相同输入并返回有序数据视图，完整结果比对在计时外完成。计时包含结果分配、查询、所有权管理、Value 长度与首尾字节读取，以及结果销毁。
+
+[原始结果与哈希](bench/results/duke-x86-2026-10-24.json) · [完整吞吐与 P99 报告](bench/results/duke-x86-2026-10-24.md) · [环境记录](bench/results/duke-x86-2026-10-24.environment.txt) · [测量方法](docs/BENCHMARKS.md)
 
 ```sh
-build/release/kvquery_bench --records 1000000 --batch 256 --queries 262144 --rounds 3
-python3 bench/run_suite.py --output bench/results/server-suite.json
-python3 bench/summarize.py --input bench/results/server-suite.json --output bench/results/server-report.md
+bash bench/run_linux.sh bench/results/linux-suite 0
 ```
 
 ## 测试与验证
 
-测试覆盖边界值、确定性冲突与节点迁移、随机差分、结果生命周期、并发读取、保存竞争、损坏文件、固定字节格式与 CLI。Linux CI 运行 GCC Release、Clang Debug 和 Clang ASan/UBSan 三组配置。
+测试覆盖边界值、确定性冲突与节点迁移、随机差分、结果生命周期、并发读取、保存竞争、损坏文件、固定字节格式与 CLI。Linux CI 运行 GCC Release、Clang Debug 和 Clang ASan/UBSan 与强制可移植 SIMD 四组配置。
 
 ```sh
 cmake -S . -B build/asan -DKVQUERY_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
