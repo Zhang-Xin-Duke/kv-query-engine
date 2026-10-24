@@ -59,6 +59,7 @@ std::vector<std::optional<std::string_view>> map_query(const Map& map,
 struct Method {
   std::string name;
   QueryOptions options;
+  bool inlined = true;
 };
 struct Measurement {
   Method method;
@@ -83,7 +84,8 @@ int main(int argc, char** argv) {
     uint64_t count = 100000, batch = 256, queries = 262144, value_size = 32, seed = 20261021,
              rounds = 3;
     double hit_rate = .9;
-    std::string distribution = "uniform";
+    std::string distribution = "uniform", value_layout = "inline";
+    bool compare_inline = false;
     for (int i = 1; i < argc; i += 2) {
       if (i + 1 >= argc) throw std::invalid_argument("each argument requires a value");
       const std::string_view key = argv[i], value = argv[i + 1];
@@ -101,6 +103,12 @@ int main(int argc, char** argv) {
         rounds = integer(value);
       else if (key == "--distribution")
         distribution = value;
+      else if (key == "--value-layout")
+        value_layout = value;
+      else if (key == "--compare-inline") {
+        if (value != "0" && value != "1") throw std::invalid_argument("invalid comparison mode");
+        compare_inline = value == "1";
+      }
       else if (key == "--hit-rate") {
         size_t end = 0;
         hit_rate = std::stod(std::string(value), &end);
@@ -111,7 +119,8 @@ int main(int argc, char** argv) {
     if (!count || count > 10'000'000 || !batch || batch > 65536 || !queries ||
         queries > 10'000'000 || !rounds || rounds > 50 || value_size > 1048576 ||
         !std::isfinite(hit_rate) || hit_rate < 0 || hit_rate > 1 ||
-        (distribution != "uniform" && distribution != "hot"))
+        (distribution != "uniform" && distribution != "hot") ||
+        (value_layout != "inline" && value_layout != "external" && value_layout != "mixed"))
       throw std::invalid_argument("benchmark option out of bounds");
     if (value_size && count > ((512ULL << 20) / value_size))
       throw std::length_error("benchmark value budget exceeded");
@@ -122,15 +131,25 @@ int main(int argc, char** argv) {
     map.max_load_factor(.8F);
     map.reserve(static_cast<size_t>(count));
     for (uint64_t i = 0; i < count; ++i) {
-      std::string value(static_cast<size_t>(value_size), '\0');
+      // Mixed mode deterministically alternates six-byte and requested-size values.
+      const auto size = value_layout == "mixed" && i % 2 == 0 ? 6 : value_size;
+      std::string value(static_cast<size_t>(size), '\0');
       for (size_t j = 0; j < value.size(); ++j) value[j] = static_cast<char>(mix(i + j) & 255);
       records.push_back({i * 2, std::move(value)});
       map.emplace(records.back().key, records.back().value);
     }
     const auto begin_build = Clock::now();
-    const auto snapshot = Snapshot::build(records);
+    BuildOptions build_options;
+    build_options.inline_small_values = value_layout != "external";
+    const auto snapshot = Snapshot::build(records, build_options);
     const auto build_ns =
         std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - begin_build).count();
+    std::shared_ptr<const Snapshot> external;
+    if (compare_inline) {
+      if (value_layout == "external") throw std::invalid_argument("comparison needs inline/mixed layout");
+      build_options.inline_small_values = false;
+      external = Snapshot::build(records, build_options);
+    }
     std::vector<Record>().swap(records);
     std::vector<uint64_t> keys;
     keys.reserve(static_cast<size_t>(queries));
@@ -148,6 +167,19 @@ int main(int argc, char** argv) {
     for (auto strategy : {Strategy::prefetch, Strategy::amac, Strategy::simd})
       for (size_t window : {8, 32, 64})
         methods.push_back({strategy_name(strategy), {strategy, window}});
+    if (compare_inline) {
+      std::vector<Method> paired{methods.front()};
+      for (size_t i = 1; i < methods.size(); ++i) {
+        auto control = methods[i];
+        control.inlined = false;
+        paired.push_back(control);
+        paired.push_back(methods[i]);
+      }
+      methods = std::move(paired);
+    }
+    const auto select = [&](const Method& method) -> const Snapshot& {
+      return method.inlined || !external ? *snapshot : *external;
+    };
     std::vector<Measurement> results;
     for (const auto& m : methods) results.push_back({m, 0, 0, {}});
     // Full result equality validation is outside all timed sections.
@@ -157,7 +189,7 @@ int main(int argc, char** argv) {
       const auto expected = map_query(map, input);
       for (const auto& m : methods)
         if (m.name != "unordered_map") {
-          auto actual = snapshot->query(input, m.options);
+          auto actual = select(m).query(input, m.options);
           if (!std::equal(actual.values().begin(), actual.values().end(), expected.begin()))
             throw std::runtime_error("benchmark verification failed");
         }
@@ -170,14 +202,17 @@ int main(int argc, char** argv) {
         auto out = map_query(map, input);
         if (consume(out) == 0) std::cerr << "";
       } else {
-        auto out = snapshot->query(input, m.options);
+        auto out = select(m).query(input, m.options);
         if (consume(out.values()) == 0) std::cerr << "";
       }
     }
     for (uint64_t round = 0; round < rounds; ++round)
       for (size_t step = 0; step < methods.size(); ++step) {
-        const size_t index = (step + static_cast<size_t>(round)) % methods.size();
+        // Reverse on alternate rounds so neither layout is always measured first.
+        const size_t offset = round % 2 ? methods.size() - 1 - step : step;
+        const size_t index = (offset + static_cast<size_t>(round)) % methods.size();
         auto& result = results[index];
+        const auto& selected = select(result.method);
         for (size_t pos = 0; pos < keys.size(); pos += static_cast<size_t>(batch)) {
           const auto input = std::span<const uint64_t>(keys).subspan(
               pos, std::min<size_t>(static_cast<size_t>(batch), keys.size() - pos));
@@ -187,7 +222,7 @@ int main(int argc, char** argv) {
             const auto out = map_query(map, input);
             check = consume(out);
           } else {
-            const auto out = snapshot->query(input, result.method.options);
+            const auto out = selected.query(input, result.method.options);
             check = consume(out.values());
           }
           const auto ns = static_cast<uint64_t>(
@@ -213,12 +248,19 @@ int main(int argc, char** argv) {
               << ",\n  \"actual_hit_rate\":"
               << static_cast<double>(hits) / static_cast<double>(queries)
               << ",\n  \"distribution\":\"" << distribution
-              << "\",\n  \"index_bytes\":" << stats.index_bytes
+              << "\",\n  \"value_layout\":\"" << value_layout
+              << "\",\n  \"compare_inline\":" << (compare_inline ? "true" : "false")
+              << ",\n  \"inline_records\":" << stats.inline_records
+              << ",\n  \"inline_value_bytes\":" << stats.inline_value_bytes
+              << ",\n  \"external_control_value_bytes\":" << (external ? external->stats().value_bytes : 0)
+              << ",\n  \"index_bytes\":" << stats.index_bytes
               << ",\n  \"value_storage_bytes\":" << stats.value_bytes
               << ",\n  \"build_ns\":" << build_ns << ",\n  \"results\":[\n";
     for (size_t i = 0; i < results.size(); ++i) {
       const auto& r = results[i];
       std::cout << "    {\"strategy\":\"" << r.method.name
+                << "\",\"layout\":\"" << (r.method.name == "unordered_map" ? "map" :
+                    (r.method.inlined && value_layout != "external" ? "inline" : "external"))
                 << "\",\"window\":" << r.method.options.window << ",\"keys_per_second\":"
                 << static_cast<double>(queries * rounds) * 1e9 / static_cast<double>(r.elapsed)
                 << ",\"batch_p50_ns\":" << percentile(r.ns, .5)

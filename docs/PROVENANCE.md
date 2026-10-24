@@ -41,6 +41,13 @@ retaining the supplied index layout; no SIMD implementation body was copied from
 the reference artifact.
 The repository contains standalone code, tests, and documentation. Source configuration and business data remain outside this project.
 
+Small-value inlining is an independently implemented extension of the packed node:
+six payload bytes, a length and a tag reuse its existing 54 data bits. The supplied
+project's `docs/next.md` describes the general idea of storing small values directly
+in a `NeighborValueTable`; no corresponding implementation was found in that
+checkout. This project adds the mixed inline/external encoding, endian-aware views,
+cross-layout persistence, accounting, tests and paired benchmark implementation.
+
 ## Background references
 
 - [NeighborHash public artifact](https://github.com/slow-steppers/NeighborHash)

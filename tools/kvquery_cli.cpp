@@ -104,6 +104,8 @@ int main(int argc, char** argv) {
       const auto s = Snapshot::load(argv[2])->stats();
       std::cout << "{\"records\":" << s.records << ",\"buckets\":" << s.buckets
                 << ",\"index_bytes\":" << s.index_bytes << ",\"value_bytes\":" << s.value_bytes
+                << ",\"inline_records\":" << s.inline_records
+                << ",\"inline_value_bytes\":" << s.inline_value_bytes
                 << ",\"collisions\":" << s.collisions << ",\"relocations\":" << s.relocations
                 << ",\"build_attempts\":" << s.build_attempts << "}\n";
     } else {

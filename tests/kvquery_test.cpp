@@ -391,6 +391,104 @@ void neighborhood_retry() {
   o.max_index_bytes = uint64_t(buckets) * 16;
   rejects([&] { Snapshot::build(records, o); });
 }
+void inline_values() {
+  using Index = detail::NeighborIndex;
+  // Exhaustive one-byte payloads and every length, including binary zeros/0xff.
+  for (size_t length = 0; length <= Index::kInlineBytes; ++length)
+    for (unsigned byte = 0; byte <= 255; ++byte) {
+      const std::string value(length, static_cast<char>(byte));
+      Index::FlatNode node;
+      node.SetData(0, Index::PackInline(value));
+      CHECK(!node.IsEmpty());
+      CHECK(node.IsInline());
+      for (int link : {-512, -1, 0, 1, 511}) {
+        node.SetChainLink(link);
+        CHECK(node.ChainLink() == link);
+        CHECK(std::string_view(node.InlineData(), node.InlineLength()) == value);
+      }
+    }
+  rejects([] { Index::PackInline("1234567"); });
+  // A forced lodger relocation must preserve all six inline bytes, not just offsets.
+  Index hasher({}, 16);
+  std::vector<Index::Entry> entries;
+  for (uint64_t key = 0; entries.size() < 2; ++key)
+    if (hasher.bucket(key) == 0) entries.push_back({key, Index::PackInline("abcdef")});
+  Index two(entries, 16);
+  const auto lodger = two.next(0, two.node(0).ChainLink());
+  uint64_t host = 0;
+  while (hasher.bucket(host) != lodger) ++host;
+  entries.push_back({host, 1 | (uint64_t(7) << 36)});
+  Index relocated(entries, 16);
+  CHECK(relocated.stats().relocations == 1);
+  for (size_t i = 0; i < 2; ++i) {
+    const auto* node = relocated.find(entries[i].key);
+    CHECK(node && node->IsInline());
+    CHECK(std::string_view(node->InlineData(), node->InlineLength()) == "abcdef");
+  }
+  CHECK(!relocated.find(host)->IsInline());
+
+  std::vector<Record> records;
+  std::map<uint64_t, std::string> ref;
+  std::vector<uint64_t> keys;
+  uint64_t expected_inline = 0, expected_inline_bytes = 0, external_bytes = 1;
+  for (size_t size : {0, 1, 2, 3, 4, 5, 6, 7, 8, 32, 229375, 229376, 262142, 262143, 300000}) {
+    const uint64_t key = records.size();
+    std::string value(size, '\0');
+    for (size_t i = 0; i < size; ++i) value[i] = static_cast<char>((i * 37 + size) & 255);
+    records.push_back({key, value});
+    ref.emplace(key, value);
+    keys.push_back(key);
+    if (size <= Index::kInlineBytes) {
+      ++expected_inline;
+      expected_inline_bytes += size;
+    } else {
+      external_bytes += size + (size >= Index::kExternalLengthLimit ? 4 : 0);
+    }
+  }
+  keys.insert(keys.end(), {UINT64_MAX, 0, 6, 6, 7, 123456});
+  TestDir dir;
+  for (bool enabled : {false, true}) {
+    BuildOptions options;
+    options.inline_small_values = enabled;
+    auto snapshot = Snapshot::build(records, options);
+    compare(snapshot, keys, ref);
+    CHECK(snapshot->stats().inline_records == (enabled ? expected_inline : 0));
+    CHECK(snapshot->stats().inline_value_bytes == (enabled ? expected_inline_bytes : 0));
+    CHECK(snapshot->stats().value_bytes == external_bytes + (enabled ? 0 : expected_inline_bytes));
+    const auto file = dir.path / (enabled ? "inline.kwv" : "external.kwv");
+    snapshot->save(file);
+    for (bool load_inline : {false, true}) {
+      LoadOptions load;
+      load.build.inline_small_values = load_inline;
+      auto loaded = Snapshot::load(file, load);
+      compare(loaded, keys, ref);
+      CHECK(loaded->stats().inline_records == (load_inline ? expected_inline : 0));
+    }
+    auto held = snapshot->query(keys, {Strategy::simd, 3});
+    auto copied = held;
+    auto moved = std::move(held);
+    snapshot.reset();
+    CHECK(*copied[6] == ref.at(6));
+    CHECK(*moved[0] == "");
+  }
+  // Different layouts serialize exactly the same logical records at fixed placement.
+  const std::vector<Record> one{{0, std::string("a\0\xffxyz", 6)}};
+  BuildOptions external;
+  external.inline_small_values = false;
+  Snapshot::build(one)->save(dir.path / "one-inline.kwv");
+  Snapshot::build(one, external)->save(dir.path / "one-external.kwv");
+  CHECK(read_bytes(dir.path / "one-inline.kwv") == read_bytes(dir.path / "one-external.kwv"));
+  BuildOptions tiny;
+  tiny.max_value_bytes = 1;
+  CHECK(Snapshot::build(one, tiny)->stats().value_bytes == 1);
+  tiny.inline_small_values = false;
+  rejects([&] { Snapshot::build(one, tiny); });
+  LoadOptions tiny_load;
+  tiny_load.build.max_value_bytes = 1;
+  CHECK(Snapshot::load(dir.path / "one-external.kwv", tiny_load)->stats().inline_records == 1);
+  tiny_load.build.inline_small_values = false;
+  rejects([&] { Snapshot::load(dir.path / "one-inline.kwv", tiny_load); });
+}
 int main(int argc, char** argv) {
   try {
     const std::string group = argc > 1 ? argv[1] : "all";
@@ -408,6 +506,7 @@ int main(int argc, char** argv) {
     run("retry", neighborhood_retry);
     run("format", format_golden);
     run("simd", simd_residual_queries);
+    run("inline", inline_values);
   } catch (const std::exception& e) {
     std::cerr << e.what() << '\n';
     return 1;

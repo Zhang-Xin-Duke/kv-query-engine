@@ -27,6 +27,8 @@ struct BuildOptions {
   uint64_t max_records = 10'000'000;
   uint64_t max_value_bytes = 512ULL << 20;
   uint64_t max_index_bytes = 512ULL << 20;
+  // Store values of 0..6 bytes inside the existing 16-byte index node.
+  bool inline_small_values = true;
 };
 struct LoadOptions {
   uint64_t max_file_bytes = 512ULL << 20;
@@ -35,6 +37,7 @@ struct LoadOptions {
 struct Stats {
   uint64_t records, buckets, index_bytes, value_bytes;
   uint64_t direct, collisions, relocations, build_attempts;
+  uint64_t inline_records, inline_value_bytes;
 };
 class Snapshot;
 class BatchResult {

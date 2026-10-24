@@ -1,9 +1,12 @@
 // Adapted from supplied immutable_neighbor_hash_table.h; see docs/PROVENANCE.md.
 #pragma once
 #include <algorithm>
+#include <bit>
 #include <cstdint>
+#include <cstring>
 #include <span>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 namespace kvquery::detail {
@@ -21,6 +24,11 @@ class NeighborIndex {
   static constexpr uint64_t kValueLenBits = 18;
   static constexpr uint64_t kOffsetMask = (1ULL << kOffsetBits) - 1;
   static constexpr uint32_t kValueLenSentinel = (1U << kValueLenBits) - 1;
+  // The top six data bits encode 111 + a three-bit inline length (0..6).
+  // Length 7 stays external, including the all-ones overflow-length sentinel.
+  static constexpr size_t kInlineBytes = 6;
+  static constexpr uint32_t kExternalLengthLimit = 7U << 15;
+  static constexpr uint64_t kInlineTag = 7ULL << 51;
   static constexpr uint64_t kPackedDataMask = (1ULL << 54) - 1;
   static constexpr int32_t kMaxChainOffset = 511;
   static constexpr int32_t kMinChainOffset = -512;
@@ -31,6 +39,17 @@ class NeighborIndex {
     uint64_t key = 0;
     uint64_t packed_value = 0;
     bool IsEmpty() const noexcept { return packed_value == 0; }
+    bool IsInline() const noexcept {
+      return (packed_value & kInlineTag) == kInlineTag && InlineLength() <= kInlineBytes;
+    }
+    size_t InlineLength() const noexcept { return (packed_value >> 48) & 7; }
+    const char* InlineData() const noexcept {
+      static_assert(std::endian::native == std::endian::little ||
+                    std::endian::native == std::endian::big);
+      // Character access to the immutable integer's object representation is legal.
+      return reinterpret_cast<const char*>(&packed_value) +
+             (std::endian::native == std::endian::big ? 2 : 0);
+    }
     uint64_t ValueOffset() const noexcept { return packed_value & kOffsetMask; }
     uint32_t ValueLength() const noexcept {
       return static_cast<uint32_t>((packed_value >> 36) & kValueLenSentinel);
@@ -49,6 +68,14 @@ class NeighborIndex {
     }
   };
   static_assert(sizeof(FlatNode) == 16);
+  static uint64_t PackInline(std::string_view value) {
+    if (value.size() > kInlineBytes) throw std::length_error("inline value too large");
+    uint64_t payload = 0;
+    auto* bytes = reinterpret_cast<char*>(&payload) +
+                  (std::endian::native == std::endian::big ? 2 : 0);
+    if (!value.empty()) std::memcpy(bytes, value.data(), value.size());
+    return payload | kInlineTag | (static_cast<uint64_t>(value.size()) << 48);
+  }
   struct Stats {
     uint64_t direct = 0, collisions = 0, relocations = 0;
   };

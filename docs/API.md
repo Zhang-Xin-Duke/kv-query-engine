@@ -37,6 +37,7 @@ Save publishes a new file and rejects an existing destination. The parent direct
 | `max_records` | `uint64_t` | `10'000'000` | Input record count limit |
 | `max_value_bytes` | `uint64_t` | `512ULL << 20` | Owned value region, including reserved byte and extended lengths |
 | `max_index_bytes` | `uint64_t` | `512ULL << 20` | Logical node-array budget for every build attempt |
+| `inline_small_values` | `bool` | `true` | Store 0..6-byte values in existing node bytes; `false` selects external-only storage |
 
 `LoadOptions` contains `max_file_bytes` (default `512ULL << 20`) and a nested `BuildOptions build`. File, value and index limits are separate. A large collection may need a larger file limit because serialized records include 16 bytes of metadata per value.
 
@@ -53,6 +54,10 @@ auto restored = kvquery::Snapshot::load("dataset-v2.kwv", load);
 ```
 
 Build and load use temporary records/metadata as well as the final snapshot. These limits describe components rather than total process RSS.
+The value budget counts the external byte region. Inlined payload is already
+covered by the index budget. Inline and external-only snapshots use the same
+version-1 file format; `LoadOptions::build.inline_small_values` selects the loaded
+memory layout independently of the layout that wrote the file.
 
 ## Queries
 
@@ -119,6 +124,8 @@ const char* simd_backend() noexcept; // "neon", "sse2", or "portable"
 | `collisions` | Same-chain inserts in the successful build |
 | `relocations` | Inserts requiring lodger relocation in the successful build |
 | `build_attempts` | Initial build plus any retries |
+| `inline_records` | Records whose complete value is stored inside a node, including empty values |
+| `inline_value_bytes` | Payload bytes inside nodes, already included in `index_bytes` |
 
 The byte counts describe owned logical arrays. They exclude allocator metadata, snapshot objects, caller-owned records and temporary build storage.
 

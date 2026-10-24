@@ -52,6 +52,10 @@ uint64_t hash_bytes(uint64_t h, const char* p, size_t n) {
 constexpr uint64_t fnv_basis = 14695981039346656037ULL;
 constexpr std::array<char, 8> magic{'K', 'W', 'V', '0', '0', '1', '\r', '\n'};
 constexpr size_t header_bytes = 40;
+uint64_t external_bytes(uint64_t size, const BuildOptions& options) noexcept {
+  if (options.inline_small_values && size <= Index::kInlineBytes) return 0;
+  return size + (size >= Index::kExternalLengthLimit ? 4 : 0);
+}
 struct TempFile {
   std::filesystem::path path;
   int fd = -1;
@@ -77,8 +81,9 @@ struct Snapshot::Impl {
   std::unique_ptr<Index> index;
   // Offset 0 is reserved so packed data 0 means empty, including for key 0.
   std::vector<char> values{0};
-  uint64_t records = 0, attempts = 0;
+  uint64_t records = 0, attempts = 0, inline_records = 0, inline_value_bytes = 0;
   std::string_view view(const Index::FlatNode& n) const noexcept {
+    if (n.IsInline()) return {n.InlineData(), n.InlineLength()};
     const char* data = values.data() + n.ValueOffset();
     const uint32_t len =
         n.ValueLength() == Index::kValueLenSentinel ? u32le(data - 4) : n.ValueLength();
@@ -117,7 +122,7 @@ std::shared_ptr<const Snapshot> Snapshot::build(std::span<const Record> records,
   uint64_t total = 1;
   for (const auto& r : records) {
     const uint64_t n = r.value.size();
-    const uint64_t extra = n + (n >= Index::kValueLenSentinel ? 4 : 0);
+    const uint64_t extra = external_bytes(n, options);
     if (n > UINT32_MAX || total > options.max_value_bytes ||
         extra > options.max_value_bytes - total || total + extra > Index::kOffsetMask)
       throw std::length_error("value storage exceeds limit");
@@ -128,10 +133,17 @@ std::shared_ptr<const Snapshot> Snapshot::build(std::span<const Record> records,
   entries.reserve(records.size());
   for (const auto& r : records) {
     const auto size = static_cast<uint32_t>(r.value.size());
-    if (size >= Index::kValueLenSentinel) append32(p->values, size);
+    if (options.inline_small_values && size <= Index::kInlineBytes) {
+      entries.push_back({r.key, Index::PackInline(r.value)});
+      ++p->inline_records;
+      p->inline_value_bytes += size;
+      continue;
+    }
+    if (size >= Index::kExternalLengthLimit) append32(p->values, size);
     const auto offset = static_cast<uint64_t>(p->values.size());
     p->values.insert(p->values.end(), r.value.begin(), r.value.end());
-    entries.push_back({r.key, offset | (uint64_t(std::min(size, Index::kValueLenSentinel)) << 36)});
+    const auto length = size >= Index::kExternalLengthLimit ? Index::kValueLenSentinel : size;
+    entries.push_back({r.key, offset | (uint64_t(length) << 36)});
   }
   for (unsigned attempt = 0;; ++attempt) {
     ++p->attempts;
@@ -156,7 +168,9 @@ Stats Snapshot::stats() const noexcept {
           s.direct,
           s.collisions,
           s.relocations,
-          impl_->attempts};
+          impl_->attempts,
+          impl_->inline_records,
+          impl_->inline_value_bytes};
 }
 BatchResult Snapshot::query(std::span<const uint64_t> keys, QueryOptions options) const {
   if (options.window < 1 || options.window > 256)
@@ -371,7 +385,7 @@ std::shared_ptr<const Snapshot> Snapshot::load(const std::filesystem::path& path
     checksum = hash_bytes(checksum, record.data(), record.size());
     const uint64_t len = get64(record.data() + 8), key = get64(record.data());
     if (len > remaining || len > UINT32_MAX) throw std::length_error("invalid value length");
-    const uint64_t extra = len + (len >= Index::kValueLenSentinel ? 4 : 0);
+    const uint64_t extra = external_bytes(len, options.build);
     if (value_bytes > options.build.max_value_bytes ||
         extra > options.build.max_value_bytes - value_bytes ||
         value_bytes + extra > Index::kOffsetMask)

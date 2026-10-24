@@ -4,6 +4,7 @@ set -euo pipefail
 # Run from the repository root. Uses existing Linux tools without installing packages.
 output_prefix=${1:-bench/results/linux-suite}
 cpu=${2:-0}
+suite=${3:-standard}
 cxx_binary=${CXX:-g++}
 mkdir -p build/server "$(dirname "$output_prefix")"
 
@@ -36,8 +37,13 @@ ar rcs build/server/libkvquery.a build/server/kvquery.o
 
 taskset -c "$cpu" python3 bench/run_suite.py --binary build/server/kvquery_bench \
   --output "${output_prefix}.json" --repeats 3 \
+  --suite "$suite" \
   --build-description "Direct ${cxx_binary} -std=c++20 -O3 -DNDEBUG; no -march=native"
-python3 bench/summarize.py --input "${output_prefix}.json" --output "${output_prefix}.md"
+if [[ "$suite" == inline ]]; then
+  python3 bench/summarize_inline.py --input "${output_prefix}.json" --output "${output_prefix}.md"
+else
+  python3 bench/summarize.py --input "${output_prefix}.json" --output "${output_prefix}.md"
+fi
 {
   printf '\nAfter benchmark:\n'
   free -m

@@ -15,6 +15,7 @@ This C++20 engine brings together a compact immutable index, configurable batch 
 ## Features
 
 - **16-byte index nodes:** packed value offsets, lengths, and relative collision links.
+- **Small-value inlining:** values of 0–6 bytes share the existing node; larger values use contiguous external storage.
 - **Four execution strategies:** scalar, lookahead prefetch, AMAC, and SIMD batch probing, selected per call.
 - **Ordered results:** duplicate keys retain their positions; missing and empty values are distinct.
 - **Immutable snapshots:** concurrent readers share stable index and value storage.
@@ -32,9 +33,11 @@ This favors a simple read path over cheap insertion. Relative links constrain pl
 
 ### 2. Keep index nodes compact and values contiguous
 
-A 16-byte index node stores a 64-bit key and a packed word containing a 36-bit value offset, an 18-bit length, and a 10-bit signed relative link. Variable-length values live in a separate contiguous byte region. Following the index does not require reading entire values, and short relative links replace a separate next-node pointer.
+A 16-byte index node stores a 64-bit key and a packed data word with a 10-bit signed relative link. Values of **0–6 bytes live inside that same node**, using a 48-bit payload, three length bits and a three-bit tag. A successful probe can consume a small value without fetching a separate value region. Larger values use a 36-bit offset and length encoding into contiguous storage; following a collision chain does not read unrelated external values.
 
 The builder calculates the value storage budget and reserves the buffer before copying records. This keeps node size fixed and avoids repeatedly growing the value region during construction.
+
+Inlining uses existing node space and preserves all 64 key bits. It adds a layout check to view construction and reserves some length codes: external lengths below 229376 are direct, and larger values use a four-byte length prefix. `BuildOptions::inline_small_values = false` selects the external-only layout for comparison. Both layouts return snapshot-owned views and read/write the same version-1 files.
 
 ### 3. Share immutable snapshots across readers
 
@@ -156,7 +159,7 @@ A CMake build can also run the suite through `bench/run_suite.py`; its `--build-
 
 ## Validation
 
-Ten CTest groups cover edge values, forced collisions and relocation, randomized differential lookup, result ownership, concurrent access, persistence failures, golden file bytes, SIMD lane/tail handling, CLI integration, and benchmark output validation. Linux CI builds GCC Release, Clang Debug, and Clang ASan/UBSan, and forced-portable Release configurations.
+Eleven CTest groups cover edge values, forced collisions and relocation, randomized differential lookup, result ownership, concurrent access, persistence failures, golden file bytes, SIMD lane/tail handling, inline payloads and cross-layout loading, CLI integration, and benchmark output validation. Linux CI builds GCC Release, Clang Debug, Clang ASan/UBSan, and forced-portable Release configurations.
 
 ```sh
 cmake -S . -B build/asan -DKVQUERY_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug

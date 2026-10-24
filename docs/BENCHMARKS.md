@@ -14,7 +14,7 @@ README and current reports use the Duke Linux course server.
   describes the host, not the number of cores consumed by one test.
 
 The direct GCC runner builds the library, CLI, test executable and benchmark using
-existing server tools. It executes the same eight C++ test groups plus two Python
+existing server tools. It executes the same nine C++ test groups plus two Python
 integration checks as CTest before timing.
 
 ## Comparable query paths
@@ -87,6 +87,30 @@ source hashes and binary hash. Source or binary changes during a run fail its
 integrity checks. `--build-description` records the actual build process.
 
 ## Reports
+
+## Paired small-value comparison
+
+```sh
+bash bench/run_linux.sh bench/results/linux-inline 0 inline
+```
+
+The inline suite compares **both layouts in the same process**, with the same
+record order, keys, load factor and query trace. The external-only control sets
+`BuildOptions::inline_small_values=false`; default snapshots inline 0–6 bytes.
+The benchmark retains one unordered_map baseline and two copies of every engine
+strategy/window, giving 21 measurements per process. Both snapshots are resident
+throughout measurement. Method order rotates and reverses on alternate rounds.
+
+Sixteen cases cover every inline length (0–6), external controls (7, 8, 32, 256),
+an equal mix of 6/32-byte values, a cache-resident table, single-key batches, 30%
+hits and a hot-key distribution. Three independent processes per case each run
+three rounds. All byte contents are validated before timing. Ratios use matched
+per-process inline/external measurements, and summaries show process ranges.
+Reported memory is logical index plus external-region bytes, not process RSS.
+
+`bench/summarize_inline.py` generates the paired report from the full raw JSON.
+
+## Published reports
 
 The summary uses per-workload process medians and fixed window 32 for comparisons.
 Raw JSON retains every window and per-process percentile. Speedups compare methods
