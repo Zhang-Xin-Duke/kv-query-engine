@@ -4,6 +4,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import os
 import pathlib
 import platform
 import statistics
@@ -13,6 +14,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--binary", default="build/release/kvquery_bench")
 parser.add_argument("--output", default="bench/results/server-suite.json")
 parser.add_argument("--repeats", type=int, default=3)
+parser.add_argument("--build-description", default="CMake Release, default optimization; no -march=native")
 args = parser.parse_args()
 if not 1 <= args.repeats <= 20:
     parser.error("repeats must be in [1,20]")
@@ -35,14 +37,15 @@ elif platform.system() == "Linux":
         model = next((line.split(":", 1)[1].strip() for line in cpuinfo.read_text().splitlines()
                       if line.startswith("model name")), model)
 source_files = [pathlib.Path("CMakeLists.txt"), pathlib.Path("src/kvquery.cpp"),
-                pathlib.Path("bench/kvquery_bench.cpp"),
+                pathlib.Path("bench/kvquery_bench.cpp"), pathlib.Path(__file__),
                 *sorted(pathlib.Path("include").rglob("*.hpp"))]
 source_hashes = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in source_files}
 binary_hash = hashlib.sha256(pathlib.Path(args.binary).read_bytes()).hexdigest()
 report = {"source_sha256": source_hashes, "binary_sha256": binary_hash, "created_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
           "host": {"os": platform.system(), "release": platform.release(),
                    "arch": platform.machine(), "cpu": model},
-          "build": "CMake Release, default optimization; no -march=native",
+          "build": args.build_description,
+          "cpu_affinity": sorted(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None,
           "repeats": args.repeats, "cases": []}
 for name, records, batch, queries, value_bytes, hit, distribution in workloads:
     for repeat in range(args.repeats):
