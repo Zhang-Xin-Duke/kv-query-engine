@@ -1,0 +1,70 @@
+[
+  {
+    "file": "overview.svg",
+    "title": "Batch KV lookup: input, storage and ordered results",
+    "description": "Build input records into immutable nodes and external values. Each calling thread runs its own executor. A batch [7,8,0,7] returns hello, missing, empty and hello, retaining its snapshot.",
+    "sources": [
+      "include/kvquery/kvquery.hpp",
+      "src/kvquery.cpp"
+    ]
+  },
+  {
+    "file": "collision-relocation.svg",
+    "title": "Construction-time collision relocation",
+    "description": "Before insertion, A in bucket 2 links +1 to B in bucket 3. To insert C whose home is bucket 3, move B to empty bucket 1, change A link to minus 1, then place C at bucket 3. Inline payload moves with the node.",
+    "sources": [
+      "include/kvquery/detail/neighbor_index.hpp:NeighborIndex::Insert_"
+    ]
+  },
+  {
+    "file": "value-layout.svg",
+    "title": "External values versus six-byte inline values",
+    "description": "An external node stores a 64-bit key, 10-bit link, 18-bit length encoding and 36-bit offset. An inline node stores the same key and link with a 3-bit tag, 3-bit length and 48-bit payload. Both are 16 bytes. A hello-exclamation value can live in either layout.",
+    "sources": [
+      "include/kvquery/detail/neighbor_index.hpp:FlatNode",
+      "src/kvquery.cpp:Snapshot::Impl::view"
+    ]
+  },
+  {
+    "file": "snapshot-ownership.svg",
+    "title": "Snapshot ownership across an application-managed refresh",
+    "description": "Retained old results own the old snapshot while new results own a separately prepared new snapshot. Each group reads stable bytes. Storage is freed only when its final snapshot or result owner is gone.",
+    "sources": [
+      "include/kvquery/kvquery.hpp:BatchResult",
+      "src/kvquery.cpp:Snapshot::query"
+    ]
+  },
+  {
+    "file": "simd-window.svg",
+    "title": "SIMD residual states and slot refill",
+    "description": "In a width-four window, pair A/B and pair C/D are compared sequentially on one thread. A matches and C misses, freeing slots for E and F. B and D retain their collision positions. Each completed result is written to its original input position.",
+    "sources": [
+      "src/kvquery.cpp:Snapshot::query SIMD branch",
+      "include/kvquery/detail/simd_probe.hpp"
+    ]
+  },
+  {
+    "file": "executor-throughput.svg",
+    "title": "Executor throughput across eight server workloads",
+    "description": "Grouped bars show map, Scalar, AMAC window 32 and SIMD window 32 for all eight standard workloads. Throughput medians and process min/max are computed directly from the committed Duke server JSON; all axes start at zero.",
+    "sources": [
+      "bench/results/duke-x86-inline-2026-10-24.json"
+    ]
+  },
+  {
+    "file": "inline-tradeoffs.svg",
+    "title": "Inlining gains and the mixed-value tradeoff",
+    "description": "Paired SIMD ratios increase with inline payload length: six-byte values improve 31.0%. Seven and 32-byte controls remain external. An even mix of six and 32-byte values regresses 4.0%. Whiskers show paired process ranges.",
+    "sources": [
+      "bench/results/duke-inline-2026-10-24.json"
+    ]
+  },
+  {
+    "file": "inline-scaling.svg",
+    "title": "Inlining throughput and storage at one, four and eight million records",
+    "description": "At one, four and eight million six-byte records, SIMD inline throughput medians are 31.94, 28.78 and 26.57 million keys per second. Paired gains are 27.4, 41.8 and 46.0 percent. Logical storage drops from 26 to 20, 104 to 80 and 208 to 160 decimal megabytes.",
+    "sources": [
+      "bench/results/duke-inline-scale-2026-10-24.json"
+    ]
+  }
+]

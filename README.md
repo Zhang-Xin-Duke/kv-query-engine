@@ -6,6 +6,10 @@
 
 An AI request often begins with a batch of IDs.
 
+![Records become immutable storage; a batch returns ordered value views](docs/figures/overview.svg)
+
+*A concrete batch includes a hit, a miss, an empty value and a repeated key.*
+
 A retrieval pipeline identifies relevant chunks and then fetches their documents. A feature service turns entity IDs into model inputs. An embedding lookup maps discrete IDs to vectors. These reads prepare the data that downstream computation consumes; examples appear in the official documentation for [LangChain retrieval](https://reference.langchain.com/python/langchain-classic/retrievers/multi_vector/MultiVectorRetriever), [Feast online features](https://docs.feast.dev/getting-started/components/online-store), and [PyTorch embedding tables](https://docs.pytorch.org/tutorials/intermediate/torchrec_intro_tutorial.html).
 
 Consider a search returning 64 document IDs. Before constructing the final context, the application must retrieve the corresponding records and preserve their association with those IDs. Even with resident data, each lookup must locate a bucket, follow any collision chain, and access the value. Dependent memory accesses can limit progress, while independent lookups within the batch create opportunities to prefetch and interleave work.
@@ -27,11 +31,19 @@ This C++20 engine brings together a compact immutable index, configurable batch 
 
 ### 1. Resolve collisions during construction
 
+![A lodger moves out of another key’s home bucket before publication](docs/figures/collision-relocation.svg)
+
+*Move B, repair A’s relative link, then place C at its home. All work happens during construction.*
+
 When two keys map to the same bucket, the builder searches nearby slots in both directions. If a new key's home bucket is occupied by a node belonging to another collision chain, the builder moves that node, repairs the chain, and places the new key at home. Finding space, moving records, and repairing links happen before publication; lookups then compare keys and follow relative links.
 
 This favors a simple read path over cheap insertion. Relative links constrain placement, so bounded rebuild attempts expand the table and change its hash seed when a neighborhood is exhausted.
 
 ### 2. Keep index nodes compact and values contiguous
+
+![Two 16-byte layouts: an external offset or an inline payload](docs/figures/value-layout.svg)
+
+*The same six-byte value can live outside the node or in its existing payload bits. Larger values remain external.*
 
 A 16-byte index node stores a 64-bit key and a packed data word with a 10-bit signed relative link. Values of **0–6 bytes live inside that same node**, using a 48-bit payload, three length bits and a three-bit tag. A successful probe can consume a small value without fetching a separate value region. Larger values use a 36-bit offset and length encoding into contiguous storage; following a collision chain does not read unrelated external values.
 
@@ -41,11 +53,19 @@ Inlining uses existing node space and preserves all 64 key bits. It adds a layou
 
 ### 3. Share immutable snapshots across readers
 
+![Old and new result batches retain their respective immutable snapshots](docs/figures/snapshot-ownership.svg)
+
+*The application selects the snapshot for new calls. Existing results keep their original bytes alive.*
+
 The index and values remain unchanged after construction. Every query owns its scheduling state and result positions, so readers do not coordinate index mutations. Each batch reads one snapshot throughout execution.
 
 Applications refresh data by building or loading another snapshot and choosing when new requests use it. Existing results retain their original snapshot. This gives reads stable addresses while leaving refresh scheduling and overlapping snapshot memory under application control.
 
 ### 4. Compare multiple keys with SIMD and retain unfinished probes
+
+![Finished probes refill while unfinished collision probes retain their state](docs/figures/simd-window.svg)
+
+*A four-slot illustration: two sequential SIMD comparisons, immediate refill, and original result positions.*
 
 SIMD batch probing gathers two candidate keys and compares them with a 128-bit vector instruction. Unfinished queries retain their input and collision-chain positions in a residual-state window. Completed positions immediately accept new queries; the remaining probes drain with the same scheduling rules. Original input positions preserve output order and duplicates even when probes finish at different times.
 
@@ -128,6 +148,14 @@ All results below were measured on the **Duke Linux course server** on October 2
 
 Each workload runs in **three independent processes, three rounds per process**. The table reports median throughput in **million keys per second**. Prefetch, AMAC and SIMD use a fixed window of 32 here; all tested windows and batch P50/P95/P99 remain in the raw results.
 
+
+![Throughput of Map, Scalar, AMAC and SIMD on eight server workloads](docs/figures/executor-throughput.svg)
+
+*Server process medians with min/max whiskers. All throughput bars start at zero; the complete table also includes Prefetch.*
+
+<details>
+<summary>Full standard-workload throughput table</summary>
+
 | Workload | unordered_map | Scalar | Prefetch/32 | AMAC/32 | SIMD/32 |
 |---|---:|---:|---:|---:|---:|
 | small-uniform | 17.78 | 32.97 | 31.40 | 33.50 | 32.85 |
@@ -138,6 +166,8 @@ Each workload runs in **three independent processes, three rounds per process**.
 | large-low-hit | 5.25 | 19.62 | 24.64 | 28.22 | 28.03 |
 | large-hot | 9.25 | 31.77 | 36.98 | 39.19 | 38.54 |
 | wide-values | 7.24 | 17.18 | 19.25 | 20.76 | 20.64 |
+
+</details>
 
 For `large-batch1024` (one million records, 32-byte values, batches of 1,024 keys, 90% target hit rate), SIMD/32 reaches **22.13 Mkeys/s**: **1.45× Scalar** and **3.78× `std::unordered_map`**. AMAC/32 reaches 21.98 Mkeys/s in the same workload. These 32/256-byte workloads use external values even with inlining enabled; they measure the final query implementation. Batch size, working set and hit distribution guide executor selection.
 
@@ -166,6 +196,14 @@ Mkeys/s; ratios are medians of matched per-process ratios. Logical storage count
 index nodes plus the external value region, excluding allocator overhead and
 other process memory.
 
+
+![Paired inline throughput ratios, including the mixed-value regression](docs/figures/inline-tradeoffs.svg)
+
+*The 1.0 line is equal throughput. Small-value gains and the mixed-value cost are both shown.*
+
+<details>
+<summary>Exact paired ratios and logical-storage table</summary>
+
 | Value distribution | External-only | Inlining enabled | Paired ratio | Logical storage MB, before → after |
 |---|---:|---:|---:|---:|
 | 1 byte | 29.34 | 31.82 | 1.083× | 21.00 → 20.00 |
@@ -175,6 +213,8 @@ other process memory.
 | 7 bytes (control) | 24.06 | 23.89 | 0.993× | 27.00 → 27.00 |
 | 32 bytes (control) | 21.15 | 20.94 | 0.987× | 52.00 → 52.00 |
 | 50% 6-byte + 50% 32-byte | 22.27 | 21.44 | 0.960× | 39.00 → 36.00 |
+
+</details>
 
 For six-byte values, inlining improves throughput by **31.0%** and reduces logical
 storage by **23.1%**, keeping every node at 16 bytes. Scalar improves by 23.6% and
@@ -209,11 +249,21 @@ server, binary, CPU affinity and paired measurement protocol. Each case runs in
 three independent processes with three rounds. Throughput is in Mkeys/s; gains
 are matched per-process ratio medians.
 
+
+![SIMD throughput and logical storage at one, four and eight million records](docs/figures/inline-scaling.svg)
+
+*The same server binary measures both layouts. Logical storage counts index and external-value bytes.*
+
+<details>
+<summary>Exact scaling results</summary>
+
 | Records | SIMD/32 external | SIMD/32 inline | SIMD gain | AMAC/32 gain | Logical storage MB, before → after |
 |---|---:|---:|---:|---:|---:|
 | 1,000,000 | 25.07 | 31.94 | +27.4% | +27.0% | 26 → 20 |
 | 4,000,000 | 20.08 | 28.78 | +41.8% | +43.3% | 104 → 80 |
 | 8,000,000 | 18.17 | 26.57 | +46.0% | +48.2% | 208 → 160 |
+
+</details>
 
 The relative SIMD gain rises from 27.4% at one million records to 46.0% at eight
 million; AMAC/32 reaches 48.2%. Inlined logical storage at eight million records is
@@ -243,6 +293,8 @@ ctest --test-dir build/asan --output-on-failure
 ThreadSanitizer is available in a separate build through `-DKVQUERY_TSAN=ON`. See [Validation](docs/VALIDATION.md).
 
 ## Source and license
+
+[Figure sources and reproduction](docs/figures/README.md) document which original illustrations informed the redrawn diagrams and which server records drive the charts.
 
 The engine adapts an existing neighbor-hash index and AMAC implementation. [PROVENANCE](docs/PROVENANCE.md) records the source and project changes.
 

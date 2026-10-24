@@ -1,0 +1,190 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns2="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" width="864pt" height="385.2pt" viewBox="0 0 864 385.2" version="1.1" role="img" aria-labelledby="collision-relocation-title collision-relocation-desc">
+ <desc id="collision-relocation-desc">Before insertion, A in bucket 2 links +1 to B in bucket 3. To insert C whose home is bucket 3, move B to empty bucket 1, change A link to minus 1, then place C at bucket 3. Inline payload moves with the node.</desc><title id="collision-relocation-title">Construction-time collision relocation</title><title>Construction-time collision relocation</title>
+ <metadata>
+  <rdf:RDF>
+   <ns2:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+    <dc:title>Construction-time collision relocation</dc:title>
+    <dc:description>Before insertion, A in bucket 2 links +1 to B in bucket 3. To insert C whose home is bucket 3, move B to empty bucket 1, change A link to minus 1, then place C at bucket 3. Inline payload moves with the node.</dc:description>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <ns2:Agent>
+      <dc:title>Matplotlib v3.10.7, https://matplotlib.org/</dc:title>
+     </ns2:Agent>
+    </dc:creator>
+   </ns2:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 385.2  L 864 385.2  L 864 0  L 0 0  z " style="fill: #ffffff" />
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 53.28 112.32  L 211.68 112.32  Q 216 112.32 216 116.64  L 216 142.56  Q 216 146.88 211.68 146.88  L 53.28 146.88  Q 48.96 146.88 48.96 142.56  L 48.96 116.64  Q 48.96 112.32 53.28 112.32  z " clip-path="url(#pcf18e40708)" style="fill: #f3f5f8; stroke: #cbd5e1; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_3">
+    <path d="M 53.28 159.12  L 211.68 159.12  Q 216 159.12 216 163.44  L 216 189.36  Q 216 193.68 211.68 193.68  L 53.28 193.68  Q 48.96 193.68 48.96 189.36  L 48.96 163.44  Q 48.96 159.12 53.28 159.12  z " clip-path="url(#pcf18e40708)" style="fill: #edf4ff; stroke: #2563eb; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_4">
+    <path d="M 53.28 205.92  L 211.68 205.92  Q 216 205.92 216 210.24  L 216 236.16  Q 216 240.48 211.68 240.48  L 53.28 240.48  Q 48.96 240.48 48.96 236.16  L 48.96 210.24  Q 48.96 205.92 53.28 205.92  z " clip-path="url(#pcf18e40708)" style="fill: #edf4ff; stroke: #2563eb; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_5">
+    <path d="M 53.28 252.72  L 211.68 252.72  Q 216 252.72 216 257.04  L 216 282.96  Q 216 287.28 211.68 287.28  L 53.28 287.28  Q 48.96 287.28 48.96 282.96  L 48.96 257.04  Q 48.96 252.72 53.28 252.72  z " clip-path="url(#pcf18e40708)" style="fill: #f3f5f8; stroke: #cbd5e1; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_6">
+    <path d="M 218.027567 177.642554  Q 190.749242 199.802592 216.818948 220.975833  " clip-path="url(#pcf18e40708)" style="fill: none; stroke: #2563eb; stroke-width: 1.4; stroke-linecap: round" />
+    <path d="M 214.237262 215.271895  L 216.818948 220.975833  L 210.706786 219.618819  z " clip-path="url(#pcf18e40708)" style="fill: #2563eb; stroke: #2563eb; stroke-width: 1.4; stroke-linecap: round" />
+   </g>
+   <g id="patch_7">
+    <path d="M 341.28 112.32  L 499.68 112.32  Q 504 112.32 504 116.64  L 504 142.56  Q 504 146.88 499.68 146.88  L 341.28 146.88  Q 336.96 146.88 336.96 142.56  L 336.96 116.64  Q 336.96 112.32 341.28 112.32  z " clip-path="url(#pcf18e40708)" style="fill: #edf4ff; stroke: #2563eb; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_8">
+    <path d="M 341.28 159.12  L 499.68 159.12  Q 504 159.12 504 163.44  L 504 189.36  Q 504 193.68 499.68 193.68  L 341.28 193.68  Q 336.96 193.68 336.96 189.36  L 336.96 163.44  Q 336.96 159.12 341.28 159.12  z " clip-path="url(#pcf18e40708)" style="fill: #edf4ff; stroke: #2563eb; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_9">
+    <path d="M 341.28 205.92  L 499.68 205.92  Q 504 205.92 504 210.24  L 504 236.16  Q 504 240.48 499.68 240.48  L 341.28 240.48  Q 336.96 240.48 336.96 236.16  L 336.96 210.24  Q 336.96 205.92 341.28 205.92  z " clip-path="url(#pcf18e40708)" style="fill: #f3f5f8; stroke: #cbd5e1; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_10">
+    <path d="M 341.28 252.72  L 499.68 252.72  Q 504 252.72 504 257.04  L 504 282.96  Q 504 287.28 499.68 287.28  L 341.28 287.28  Q 336.96 287.28 336.96 282.96  L 336.96 257.04  Q 336.96 252.72 341.28 252.72  z " clip-path="url(#pcf18e40708)" style="fill: #f3f5f8; stroke: #cbd5e1; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_11">
+    <path d="M 506.027567 175.157446  Q 478.749242 152.997408 504.818948 131.824167  " clip-path="url(#pcf18e40708)" style="fill: none; stroke: #2563eb; stroke-width: 1.4; stroke-linecap: round" />
+    <path d="M 498.706786 133.181181  L 504.818948 131.824167  L 502.237262 137.528105  z " clip-path="url(#pcf18e40708)" style="fill: #2563eb; stroke: #2563eb; stroke-width: 1.4; stroke-linecap: round" />
+   </g>
+   <g id="patch_12">
+    <path d="M 629.28 112.32  L 787.68 112.32  Q 792 112.32 792 116.64  L 792 142.56  Q 792 146.88 787.68 146.88  L 629.28 146.88  Q 624.96 146.88 624.96 142.56  L 624.96 116.64  Q 624.96 112.32 629.28 112.32  z " clip-path="url(#pcf18e40708)" style="fill: #edf4ff; stroke: #2563eb; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_13">
+    <path d="M 629.28 159.12  L 787.68 159.12  Q 792 159.12 792 163.44  L 792 189.36  Q 792 193.68 787.68 193.68  L 629.28 193.68  Q 624.96 193.68 624.96 189.36  L 624.96 163.44  Q 624.96 159.12 629.28 159.12  z " clip-path="url(#pcf18e40708)" style="fill: #edf4ff; stroke: #2563eb; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_14">
+    <path d="M 629.28 205.92  L 787.68 205.92  Q 792 205.92 792 210.24  L 792 236.16  Q 792 240.48 787.68 240.48  L 629.28 240.48  Q 624.96 240.48 624.96 236.16  L 624.96 210.24  Q 624.96 205.92 629.28 205.92  z " clip-path="url(#pcf18e40708)" style="fill: #fff5e5; stroke: #b96b12; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_15">
+    <path d="M 629.28 252.72  L 787.68 252.72  Q 792 252.72 792 257.04  L 792 282.96  Q 792 287.28 787.68 287.28  L 629.28 287.28  Q 624.96 287.28 624.96 282.96  L 624.96 257.04  Q 624.96 252.72 629.28 252.72  z " clip-path="url(#pcf18e40708)" style="fill: #f3f5f8; stroke: #cbd5e1; stroke-width: 1.1; stroke-linejoin: miter" />
+   </g>
+   <g id="patch_16">
+    <path d="M 794.027567 175.157446  Q 766.749242 152.997408 792.818948 131.824167  " clip-path="url(#pcf18e40708)" style="fill: none; stroke: #2563eb; stroke-width: 1.4; stroke-linecap: round" />
+    <path d="M 786.706786 133.181181  L 792.818948 131.824167  L 790.237262 137.528105  z " clip-path="url(#pcf18e40708)" style="fill: #2563eb; stroke: #2563eb; stroke-width: 1.4; stroke-linecap: round" />
+   </g>
+   <g id="text_1">
+    <text style="font-weight: 700; font-size: 19px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="21.6" y="28.928594" transform="rotate(-0 21.6 28.928594)">Move a lodger, repair its chain, then claim the home bucket.</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #566b80" x="21.6" y="49.115312" transform="rotate(-0 21.6 49.115312)">Illustrative keys: A and B hash to bucket 2; the incoming C hashes to bucket 3</text>
+   </g>
+   <g id="text_3">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="21.6" y="88.547188" transform="rotate(-0 21.6 88.547188)">1  C needs bucket 3</text>
+   </g>
+   <g id="text_4">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="33.84" y="132.635312" transform="rotate(-0 33.84 132.635312)">1</text>
+   </g>
+   <g id="text_5">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="60.48" y="132.91125" transform="rotate(-0 60.48 132.91125)">empty</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="33.84" y="179.435313" transform="rotate(-0 33.84 179.435313)">2</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="60.48" y="179.71125" transform="rotate(-0 60.48 179.71125)">A  ·  home 2</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="33.84" y="226.235312" transform="rotate(-0 33.84 226.235312)">3</text>
+   </g>
+   <g id="text_9">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="60.48" y="226.51125" transform="rotate(-0 60.48 226.51125)">B  ·  home 2</text>
+   </g>
+   <g id="text_10">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="33.84" y="273.035313" transform="rotate(-0 33.84 273.035313)">4</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="60.48" y="273.31125" transform="rotate(-0 60.48 273.31125)">empty</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #2563eb" x="256.32" y="202.835312" transform="rotate(-0 256.32 202.835312)">+1</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #566b80" x="21.6" y="326.759375" transform="rotate(-0 21.6 326.759375)">B occupies another key’s home.</text>
+   </g>
+   <g id="text_14">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="309.6" y="88.547188" transform="rotate(-0 309.6 88.547188)">2  Move B; repair A → B</text>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="321.84" y="132.635312" transform="rotate(-0 321.84 132.635312)">1</text>
+   </g>
+   <g id="text_16">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="348.48" y="132.91125" transform="rotate(-0 348.48 132.91125)">B  ·  home 2</text>
+   </g>
+   <g id="text_17">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="321.84" y="179.435313" transform="rotate(-0 321.84 179.435313)">2</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="348.48" y="179.71125" transform="rotate(-0 348.48 179.71125)">A  ·  home 2</text>
+   </g>
+   <g id="text_19">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="321.84" y="226.235312" transform="rotate(-0 321.84 226.235312)">3</text>
+   </g>
+   <g id="text_20">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="348.48" y="226.51125" transform="rotate(-0 348.48 226.51125)">empty</text>
+   </g>
+   <g id="text_21">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="321.84" y="273.035313" transform="rotate(-0 321.84 273.035313)">4</text>
+   </g>
+   <g id="text_22">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="348.48" y="273.31125" transform="rotate(-0 348.48 273.31125)">empty</text>
+   </g>
+   <g id="text_23">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #2563eb" x="544.32" y="156.035313" transform="rotate(-0 544.32 156.035313)">−1</text>
+   </g>
+   <g id="text_24">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #566b80" x="309.6" y="326.759375" transform="rotate(-0 309.6 326.759375)">B’s payload moves with the node.</text>
+   </g>
+   <g id="text_25">
+    <text style="font-weight: 700; font-size: 13px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="597.6" y="88.547188" transform="rotate(-0 597.6 88.547188)">3  Place C at its home</text>
+   </g>
+   <g id="text_26">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="609.84" y="132.635312" transform="rotate(-0 609.84 132.635312)">1</text>
+   </g>
+   <g id="text_27">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="636.48" y="132.91125" transform="rotate(-0 636.48 132.91125)">B  ·  home 2</text>
+   </g>
+   <g id="text_28">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="609.84" y="179.435313" transform="rotate(-0 609.84 179.435313)">2</text>
+   </g>
+   <g id="text_29">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="636.48" y="179.71125" transform="rotate(-0 636.48 179.71125)">A  ·  home 2</text>
+   </g>
+   <g id="text_30">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="609.84" y="226.235312" transform="rotate(-0 609.84 226.235312)">3</text>
+   </g>
+   <g id="text_31">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="636.48" y="226.51125" transform="rotate(-0 636.48 226.51125)">C  ·  home 3</text>
+   </g>
+   <g id="text_32">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #566b80" x="609.84" y="273.035313" transform="rotate(-0 609.84 273.035313)">4</text>
+   </g>
+   <g id="text_33">
+    <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #19334b" x="636.48" y="273.31125" transform="rotate(-0 636.48 273.31125)">empty</text>
+   </g>
+   <g id="text_34">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: middle; fill: #2563eb" x="832.32" y="156.035313" transform="rotate(-0 832.32 156.035313)">−1</text>
+   </g>
+   <g id="text_35">
+    <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #566b80" x="597.6" y="326.759375" transform="rotate(-0 597.6 326.759375)">Queries follow A → B or find C directly.</text>
+   </g>
+   <g id="text_36">
+    <text style="font-size: 11px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; text-anchor: start; fill: #566b80" x="21.6" y="365.195312" transform="rotate(-0 21.6 365.195312)">All relocation happens before publication. The read path only compares keys and follows stored relative links.</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pcf18e40708">
+   <rect x="0" y="0" width="864" height="385.2" />
+  </clipPath>
+ </defs>
+</svg>

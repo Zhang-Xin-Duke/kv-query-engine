@@ -28,19 +28,9 @@
 
 ## 架构
 
-```mermaid
-flowchart LR
-    Input[KV records / TSV] --> Validate[校验数据与资源预算]
-    Validate --> Build[构建紧凑索引与 Value 区域]
-    Build --> Snapshot[不可变 Snapshot]
-    Snapshot --> Save[保存记录文件]
-    File[记录文件] --> Load[格式与校验和检查]
-    Load --> Build
-    Keys[一批 Key] --> Execute[Scalar / Prefetch / AMAC / SIMD]
-    Snapshot --> Execute
-    Execute --> Result[有序 Value 视图]
-    Result -. 持有所有权 .-> Snapshot
-```
+![从输入记录到快照，以及有序批量查询结果](docs/figures/overview.svg)
+
+*输入位置保持不变：命中、缺失、空值和重复查询都有明确结果。*
 
 `Snapshot` 拥有索引和 Value 字节；一次 `query()` 使用该快照回答整批 Key。执行状态属于调用本身，多个线程可以共享同一份已构建数据。`BatchResult` 保存结果位置和快照所有权，调用方使用结果时无需再复制完整 Value。
 
@@ -48,11 +38,19 @@ flowchart LR
 
 ### 让读取面对一份稳定的数据
 
+![旧结果与新结果分别持有对应快照](docs/figures/snapshot-ownership.svg)
+
+*新请求使用应用选择的快照；旧结果持有旧数据直到释放。*
+
 目标负载以读取为主，因此数据先在构建阶段整理成不可变快照。查询时，索引节点和 Value 的地址保持稳定，执行器只需要维护自己的查找状态。这样可以把并发读取与数据构建分开，也使整批查询自然使用同一份数据。
 
 更新通过构建或加载另一份快照完成。调用方决定什么时候让新请求使用新快照，旧结果继续持有旧数据。这种方式把工作集中到构建阶段，并要求应用安排快照更新时机和新旧数据共存的内存预算。
 
 ### 用 16 字节节点表达一次查找
+
+![16 字节节点内的外置布局和内联布局](docs/figures/value-layout.svg)
+
+*0–6 字节的小值放入节点，较大的值继续使用连续外部区域。*
 
 索引采用连续节点数组。每个节点由一个 64 位 Key 和一个 64 位打包字段构成：
 
@@ -71,11 +69,19 @@ flowchart LR
 
 ### 把冲突节点放在附近，并维护主桶
 
+![构建时迁移寄居节点并修复相对链](docs/figures/collision-relocation.svg)
+
+*先迁移 B、修复 A 的链，再让 C 占据自己的主桶。*
+
 插入时先定位 Key 的主桶。主桶为空就直接放入；属于同一条链时，从附近两侧寻找空位，将新节点接入链中。
 
 如果主桶被另一个 Key 的冲突节点占用，构建器先找到该节点的前驱，将它迁移到可达空位，修复链，再放入新的主节点。这个过程把更多处理留在构建阶段，让查询沿已有相对链继续查找。详细步骤与实例见[索引构建](docs/ARCHITECTURE.md#3-索引构建)。
 
 ### 根据负载组织批量访问
+
+![SIMD 查询的残余状态保留、补位与结果顺序](docs/figures/simd-window.svg)
+
+*示意窗口为 4；两组比较在同一调用线程依次执行。*
 
 | 策略 | 执行方式 | 窗口含义 |
 |---|---|---|
@@ -169,6 +175,14 @@ int main() {
 
 8 类负载各运行 3 个独立进程，每进程 3 轮。表格为进程中位数，单位是每秒百万次 Key 查询；Prefetch、AMAC、SIMD 统一展示窗口 32。
 
+
+![服务器上的执行器吞吐对比](docs/figures/executor-throughput.svg)
+
+*图中为进程中位数，误差线表示进程最小值与最大值。*
+
+<details>
+<summary>展开完整数值表</summary>
+
 | Workload | unordered_map | Scalar | Prefetch/32 | AMAC/32 | SIMD/32 |
 |---|---:|---:|---:|---:|---:|
 | small-uniform | 17.78 | 32.97 | 31.40 | 33.50 | 32.85 |
@@ -179,6 +193,8 @@ int main() {
 | large-low-hit | 5.25 | 19.62 | 24.64 | 28.22 | 28.03 |
 | large-hot | 9.25 | 31.77 | 36.98 | 39.19 | 38.54 |
 | wide-values | 7.24 | 17.18 | 19.25 | 20.76 | 20.64 |
+
+</details>
 
 百万条记录、每批 1024 个 Key 的负载下，SIMD/32 达到 **22.13 Mkeys/s**，约为 Scalar 的 **1.45 倍**、`std::unordered_map` 的 **3.78 倍**；同一负载的 AMAC/32 为 21.98 Mkeys/s。这些 32/256 字节负载使用外部 Value，测量的是最终查询实现。执行器应按批次、工作集和命中分布选择。
 
@@ -194,6 +210,14 @@ bash bench/run_linux.sh bench/results/linux-suite 0
 
 在同一个进程内比较两种布局，使用相同记录和查询输入，并轮换测量顺序。下表均为百万条记录、每批 256 个 Key、90% 目标命中率、SIMD/32；吞吐单位为 Mkeys/s。逻辑空间只包含索引和外部 Value 区域，不等于进程 RSS。
 
+
+![小值收益和混合值代价](docs/figures/inline-tradeoffs.svg)
+
+*1.0 表示吞吐相同，图中同时展示收益与回退。*
+
+<details>
+<summary>展开完整数值表</summary>
+
 | Value distribution | External-only | Inlining enabled | Paired ratio | Logical storage MB, before → after |
 |---|---:|---:|---:|---:|
 | 1 byte | 29.34 | 31.82 | 1.083× | 21.00 → 20.00 |
@@ -203,6 +227,8 @@ bash bench/run_linux.sh bench/results/linux-suite 0
 | 7 bytes (control) | 24.06 | 23.89 | 0.993× | 27.00 → 27.00 |
 | 32 bytes (control) | 21.15 | 20.94 | 0.987× | 52.00 → 52.00 |
 | 50% 6-byte + 50% 32-byte | 22.27 | 21.44 | 0.960× | 39.00 → 36.00 |
+
+</details>
 
 6 字节 Value 的 SIMD 吞吐提高 **31.0%**，逻辑空间减少 **23.1%**，索引节点保持 16 字节；同一负载的 Scalar 提高 23.6%，AMAC/32 提高 28.1%。小工作集的 SIMD 收益为 2.2%，30% 命中率时为 9.7%，收益随负载变化。
 
@@ -218,11 +244,21 @@ bash bench/run_linux.sh bench/results/linux-inline 0 inline
 
 固定每条 Value 为 6 字节、每批 256 个 Key、90% 目标命中率，每轮统一查询 **1,048,576 个 Key**。沿用同一服务器、同一二进制、CPU 0 和成对测量方法；每种规模运行 3 个独立进程、每进程 3 轮。吞吐单位为 Mkeys/s，收益为逐进程比值的中位数。
 
+
+![百万至八百万条记录的吞吐与逻辑空间](docs/figures/inline-scaling.svg)
+
+*同一二进制比较两种布局，逻辑空间包含索引与外部 Value 区域。*
+
+<details>
+<summary>展开完整数值表</summary>
+
 | Records | SIMD/32 external | SIMD/32 inline | SIMD gain | AMAC/32 gain | Logical storage MB, before → after |
 |---|---:|---:|---:|---:|---:|
 | 1,000,000 | 25.07 | 31.94 | +27.4% | +27.0% | 26 → 20 |
 | 4,000,000 | 20.08 | 28.78 | +41.8% | +43.3% | 104 → 80 |
 | 8,000,000 | 18.17 | 26.57 | +46.0% | +48.2% | 208 → 160 |
+
+</details>
 
 SIMD 相对收益随记录数从百万增加到八百万，由 27.4% 提高到 46.0%，AMAC/32 在八百万条时提高 48.2%。八百万条的逻辑空间从 208 MB 降至 160 MB。数据集扩大时绝对吞吐仍会降低，内联减轻了相对于全部外置布局的下降。
 
