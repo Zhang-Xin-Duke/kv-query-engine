@@ -37,7 +37,7 @@ elif platform.system() == "Linux":
         model = next((line.split(":", 1)[1].strip() for line in cpuinfo.read_text().splitlines()
                       if line.startswith("model name")), model)
 source_files = [pathlib.Path("CMakeLists.txt"), pathlib.Path("src/kvquery.cpp"),
-                pathlib.Path("bench/kvquery_bench.cpp"), pathlib.Path(__file__),
+                pathlib.Path("bench/kvquery_bench.cpp"), pathlib.Path("bench/run_suite.py"),
                 *sorted(pathlib.Path("include").rglob("*.hpp"))]
 source_hashes = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in source_files}
 binary_hash = hashlib.sha256(pathlib.Path(args.binary).read_bytes()).hexdigest()
