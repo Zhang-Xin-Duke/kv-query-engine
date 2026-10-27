@@ -1,6 +1,4 @@
-# High-Performance KV Query Engine for Read-Heavy Workloads
-
-[Workstation handoff / continuation notes](docs/HANDOFF_2026-10-27.md)
+# KVQuery: A Compact C++20 Engine for Batched Key-Value Lookups
 
 [Desktop benchmark and pressure-test results — Core Ultra 9 285K, Windows/Cygwin](bench/results/desktop-2026-10-27-rerun/README.md)
 

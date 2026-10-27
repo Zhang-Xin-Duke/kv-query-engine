@@ -1,6 +1,6 @@
-# High-Performance KV Query Engine for Read-Heavy Workloads
+# KVQuery: A Compact C++20 Engine for Batched Key-Value Lookups
 
-**面向读密集型负载的高性能 KV 查询引擎**
+**面向批量键值查询的紧凑型 C++20 引擎**
 
 [English](README.md) · [设计与实现](docs/ARCHITECTURE.md) · [API](docs/API.md) · [性能评测](docs/BENCHMARKS.md) · [非商业许可](LICENSE)
 
