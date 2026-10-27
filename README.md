@@ -1,5 +1,7 @@
 # High-Performance KV Query Engine for Read-Heavy Workloads
 
+[Workstation handoff / continuation notes](docs/HANDOFF_2026-10-27.md)
+
 [中文](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md) · [Benchmarks](docs/BENCHMARKS.md) · [License](LICENSE)
 
 ## Introduction
