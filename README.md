@@ -1,6 +1,12 @@
 # KVQuery: A Compact C++20 Engine for Batched Key-Value Lookups
 
-[Quick Start](#build-and-quick-start) · [Architecture](docs/ARCHITECTURE.md) · [API Reference](docs/API.md) · [Benchmark Guide](docs/BENCHMARKS.md) · [Performance Results](bench/results/desktop-2026-10-27-rerun/README.md) · [License](LICENSE) · [简体中文](README.zh-CN.md)
+[![Quick Start](https://img.shields.io/badge/Quick_Start-2563eb?style=flat-square)](#build-and-quick-start)
+[![Architecture](https://img.shields.io/badge/Architecture-475569?style=flat-square)](docs/ARCHITECTURE.md)
+[![API Reference](https://img.shields.io/badge/API_Reference-475569?style=flat-square)](docs/API.md)
+[![Benchmark Guide](https://img.shields.io/badge/Benchmark_Guide-475569?style=flat-square)](docs/BENCHMARKS.md)
+[![Performance Results](https://img.shields.io/badge/Performance_Results-047857?style=flat-square)](bench/results/desktop-2026-10-27-rerun/README.md)
+[![License: Noncommercial](https://img.shields.io/badge/License%3A_Noncommercial-475569?style=flat-square)](LICENSE)
+[![简体中文](https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-2563eb?style=flat-square)](README.zh-CN.md)
 
 ## Introduction
 
