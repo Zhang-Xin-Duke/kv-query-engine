@@ -1,8 +1,6 @@
 # KVQuery: A Compact C++20 Engine for Batched Key-Value Lookups
 
-[Desktop benchmark and pressure-test results — Core Ultra 9 285K, Windows/Cygwin](bench/results/desktop-2026-10-27-rerun/README.md)
-
-[中文](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md) · [Benchmarks](docs/BENCHMARKS.md) · [License](LICENSE)
+[Quick Start](#build-and-quick-start) · [Architecture](docs/ARCHITECTURE.md) · [API Reference](docs/API.md) · [Benchmark Guide](docs/BENCHMARKS.md) · [Performance Results](bench/results/desktop-2026-10-27-rerun/README.md) · [License](LICENSE) · [简体中文](README.zh-CN.md)
 
 ## Introduction
 
