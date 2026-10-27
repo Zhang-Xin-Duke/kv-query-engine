@@ -1,3 +1,41 @@
-{"records":16000000,"value_bytes":6,"batch":256,"seconds_target":3,"rounds":1,"trace_keys_per_worker":1048576,"latency_sample_every":64,"index_bytes":320000000,"value_storage_bytes":1,"simd_backend":"sse4.1","compiler":"14.4.0","cpu_order":[10,11,12,13,22,23,0,1],"results":[
-{"threads":8,"round":0,"strategy":"amac","elapsed_seconds":3.0009124,"batches":4682624,"keys_per_second":399462424.828,"batch_requests_per_second":1560400.09698,"batch_p50_ns":4000,"batch_p95_ns":6800,"batch_p99_ns":10300,"latency_samples":73166,"min_worker_batches":117056,"max_worker_batches":667712,"checksums_verified":true}
-]}
+{
+  "records": 16000000,
+  "value_bytes": 6,
+  "batch": 256,
+  "seconds_target": 3,
+  "rounds": 1,
+  "trace_keys_per_worker": 1048576,
+  "latency_sample_every": 64,
+  "index_bytes": 320000000,
+  "value_storage_bytes": 1,
+  "simd_backend": "sse4.1",
+  "compiler": "14.4.0",
+  "cpu_order": [
+    10,
+    11,
+    12,
+    13,
+    22,
+    23,
+    0,
+    1
+  ],
+  "results": [
+    {
+      "threads": 8,
+      "round": 0,
+      "strategy": "amac",
+      "elapsed_seconds": 3.0006438,
+      "batches": 4700864,
+      "keys_per_second": 401054328.408,
+      "batch_requests_per_second": 1566618.47034,
+      "batch_p50_ns": 4000,
+      "batch_p95_ns": 6800,
+      "batch_p99_ns": 10300,
+      "latency_samples": 73451,
+      "min_worker_batches": 117888,
+      "max_worker_batches": 674048,
+      "checksums_verified": true
+    }
+  ]
+}

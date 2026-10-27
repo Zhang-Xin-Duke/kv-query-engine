@@ -10,17 +10,18 @@
 
 ## Demo
 
-Build an immutable snapshot once, then look up a batch of keys and get ordered value views back.
+Build an immutable snapshot once, then look up batches of keys and get ordered value views back. This **two-minute, nine-chapter replay** demonstrates real lookups, application examples, matched comparisons with `std::unordered_map`, and concurrent read pressure.
 
-![KVQuery runtime demo: build a snapshot, verify hits, misses, empty values and duplicates, then run a 16-million-record pressure check](docs/demo/kvquery-demo.gif)
+![Extended KVQuery demo: ordered lookup, product catalog, snapshot reload, five std::unordered_map comparisons, and concurrent pressure](docs/demo/kvquery-demo-extended.gif)
 
-[Still image](docs/demo/kvquery-demo.png) · [Captured output and reproduction](docs/demo/README.md) · [Full performance evaluation](bench/results/desktop-2026-10-27-rerun/README.md)
+[Lookup still](docs/demo/kvquery-demo.png) · [Catalog still](docs/demo/kvquery-catalog.png) · [Comparison still](docs/demo/kvquery-comparison.png) · [Chapter guide and raw measurements](docs/demo/README.md)
 
-- **Correct results:** the demo returns a hit, a miss, a stored empty value, and a repeated key in the original input order. The CLI prints value bytes as hex.
-- **Measured under load:** the fresh demo check reached **399.46 million keys/s** (1.56 million batch requests/s), with sampled batch P99 **10.30 µs** and verified timed checksums.
-- **Repeated validation:** three separate 20-second rounds reached a median **398.61 million keys/s** in the same workload. All 12 correctness test groups passed in SSE4.1, SSE2, and forced-portable builds.
+- **Correctness and use cases:** verify hits, misses, empty values and repeated keys; fetch product records in request order; reload a saved snapshot from a new process.
+- **Matched map comparisons:** five workloads cover cache-resident data, large batches, miss-heavy traffic, wide records and six-byte values. Each uses three independent processes with three rounds per process, identical query inputs, and input-ordered value views. Every timed checksum matches.
+- **Concrete comparison:** for one million 32-byte records, batches of 1,024 keys and 90% target hits, `std::unordered_map` measured **18.51M keys/s**, AMAC/32 **57.79M** (**3.12×** map throughput), and SIMD/32 **56.86M**. These are process medians on one pinned performance core.
+- **Concurrent pressure:** a separate 16-million-record, six-byte workload with eight workers and batches of 256 reached **401.05M keys/s**, with sampled batch P99 **10.30 µs**, in one fresh three-second round. The [longer repeated pressure tests](bench/results/desktop-2026-10-27-rerun/README.md) provide the stability and saturation results.
 
-The pressure workload uses **16 million six-byte records, batches of 256 keys, 90% target hits, and eight pinned performance-core workers with AMAC/32** on a Core Ultra 9 285K, Windows/Cygwin, GCC 14.4.0. The animation is a rendered replay of actual command output; the fresh check is one 3-second round. These are in-process lookups, excluding network and request-queue latency. [Raw demo measurement](docs/demo/pressure.json).
+Recorded on a Core Ultra 9 285K, Windows/Cygwin, GCC 14.4.0. The animation renders actual CLI output and summaries of fresh raw benchmark JSON, paced for readability. Map comparisons are single-threaded; the pressure chapter uses eight workers. Measurements exclude network and request-queue latency. All 12 correctness groups passed in SSE4.1, SSE2 and forced-portable builds.
 
 ## Introduction
 
