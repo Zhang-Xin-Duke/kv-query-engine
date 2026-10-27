@@ -1,0 +1,165 @@
+{
+  "cpu": {
+    "Name": "Intel(R) Core(TM) Ultra 9 285K",
+    "NumberOfCores": 24,
+    "NumberOfLogicalProcessors": 24,
+    "L2CacheSize": 40960,
+    "L3CacheSize": 36864
+  },
+  "memory": {
+    "TotalPhysicalMemory": 68135153664
+  },
+  "os": {
+    "Caption": "Microsoft Windows 11 Enterprise",
+    "Version": "10.0.26200"
+  },
+  "cpu_topology": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "cpu_sets": [
+      {
+        "cpu": 0,
+        "core": 0,
+        "efficiency_class": 1,
+        "flags": 0
+      },
+      {
+        "cpu": 1,
+        "core": 1,
+        "efficiency_class": 1,
+        "flags": 0
+      },
+      {
+        "cpu": 2,
+        "core": 2,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 3,
+        "core": 3,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 4,
+        "core": 4,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 5,
+        "core": 5,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 6,
+        "core": 6,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 7,
+        "core": 7,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 8,
+        "core": 8,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 9,
+        "core": 9,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 10,
+        "core": 10,
+        "efficiency_class": 1,
+        "flags": 0
+      },
+      {
+        "cpu": 11,
+        "core": 11,
+        "efficiency_class": 1,
+        "flags": 0
+      },
+      {
+        "cpu": 12,
+        "core": 12,
+        "efficiency_class": 1,
+        "flags": 0
+      },
+      {
+        "cpu": 13,
+        "core": 13,
+        "efficiency_class": 1,
+        "flags": 0
+      },
+      {
+        "cpu": 14,
+        "core": 14,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 15,
+        "core": 15,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 16,
+        "core": 16,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 17,
+        "core": 17,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 18,
+        "core": 18,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 19,
+        "core": 19,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 20,
+        "core": 20,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 21,
+        "core": 21,
+        "efficiency_class": 0,
+        "flags": 0
+      },
+      {
+        "cpu": 22,
+        "core": 22,
+        "efficiency_class": 1,
+        "flags": 0
+      },
+      {
+        "cpu": 23,
+        "core": 23,
+        "efficiency_class": 1,
+        "flags": 0
+      }
+    ]
+  }
+}

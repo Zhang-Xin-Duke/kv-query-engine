@@ -1,0 +1,195 @@
+Start testing: Oct 27 10:47 EDT
+----------------------------------------------------------
+1/12 Testing: kvquery_edges
+1/12 Test: kvquery_edges
+Command: "./build/release/kvquery_test.exe" "edges"
+Directory: ./build/release
+"kvquery_edges" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+edges passed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_edges" end time: Oct 27 10:47 EDT
+"kvquery_edges" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/12 Testing: kvquery_collisions
+2/12 Test: kvquery_collisions
+Command: "./build/release/kvquery_test.exe" "collisions"
+Directory: ./build/release
+"kvquery_collisions" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+collisions passed
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_collisions" end time: Oct 27 10:47 EDT
+"kvquery_collisions" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/12 Testing: kvquery_randomized
+3/12 Test: kvquery_randomized
+Command: "./build/release/kvquery_test.exe" "randomized"
+Directory: ./build/release
+"kvquery_randomized" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+randomized passed
+<end of output>
+Test time =   0.32 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_randomized" end time: Oct 27 10:47 EDT
+"kvquery_randomized" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/12 Testing: kvquery_concurrent
+4/12 Test: kvquery_concurrent
+Command: "./build/release/kvquery_test.exe" "concurrent"
+Directory: ./build/release
+"kvquery_concurrent" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+concurrent passed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_concurrent" end time: Oct 27 10:47 EDT
+"kvquery_concurrent" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/12 Testing: kvquery_persistence
+5/12 Test: kvquery_persistence
+Command: "./build/release/kvquery_test.exe" "persistence"
+Directory: ./build/release
+"kvquery_persistence" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+persistence passed
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_persistence" end time: Oct 27 10:47 EDT
+"kvquery_persistence" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/12 Testing: kvquery_retry
+6/12 Test: kvquery_retry
+Command: "./build/release/kvquery_test.exe" "retry"
+Directory: ./build/release
+"kvquery_retry" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+retry passed
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_retry" end time: Oct 27 10:47 EDT
+"kvquery_retry" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/12 Testing: kvquery_format
+7/12 Test: kvquery_format
+Command: "./build/release/kvquery_test.exe" "format"
+Directory: ./build/release
+"kvquery_format" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+format passed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_format" end time: Oct 27 10:47 EDT
+"kvquery_format" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/12 Testing: kvquery_simd
+8/12 Test: kvquery_simd
+Command: "./build/release/kvquery_test.exe" "simd"
+Directory: ./build/release
+"kvquery_simd" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+simd passed
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_simd" end time: Oct 27 10:47 EDT
+"kvquery_simd" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/12 Testing: kvquery_inline
+9/12 Test: kvquery_inline
+Command: "./build/release/kvquery_test.exe" "inline"
+Directory: ./build/release
+"kvquery_inline" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+inline passed
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_inline" end time: Oct 27 10:47 EDT
+"kvquery_inline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/12 Testing: kvquery_cli_roundtrip
+10/12 Test: kvquery_cli_roundtrip
+Command: "/usr/bin/python3.12.exe" "./tests/cli_test.py" "./build/release/kvquery.exe"
+Directory: ./build/release
+"kvquery_cli_roundtrip" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+CLI roundtrip and errors passed
+<end of output>
+Test time =   1.55 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_cli_roundtrip" end time: Oct 27 10:47 EDT
+"kvquery_cli_roundtrip" time elapsed: 00:00:01
+----------------------------------------------------------
+
+11/12 Testing: kvquery_benchmark_smoke
+11/12 Test: kvquery_benchmark_smoke
+Command: "/usr/bin/python3.12.exe" "./tests/benchmark_test.py" "./build/release/kvquery_bench.exe"
+Directory: ./build/release
+"kvquery_benchmark_smoke" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+benchmark validation and JSON schema passed
+<end of output>
+Test time =   4.04 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_benchmark_smoke" end time: Oct 27 10:47 EDT
+"kvquery_benchmark_smoke" time elapsed: 00:00:04
+----------------------------------------------------------
+
+12/12 Testing: kvquery_concurrency_smoke
+12/12 Test: kvquery_concurrency_smoke
+Command: "/usr/bin/python3.12.exe" "./tests/concurrency_test.py" "./build/release/kvquery_concurrency_bench.exe"
+Directory: ./build/release
+"kvquery_concurrency_smoke" start time: Oct 27 10:47 EDT
+Output:
+----------------------------------------------------------
+concurrency benchmark verification passed
+<end of output>
+Test time =   1.20 sec
+----------------------------------------------------------
+Test Passed.
+"kvquery_concurrency_smoke" end time: Oct 27 10:47 EDT
+"kvquery_concurrency_smoke" time elapsed: 00:00:01
+----------------------------------------------------------
+
+End testing: Oct 27 10:47 EDT

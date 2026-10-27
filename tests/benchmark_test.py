@@ -11,7 +11,7 @@ for distribution in ("uniform", "hot"):
                             text=True, capture_output=True, check=True)
     report = json.loads(result.stdout)
     assert len(report["results"]) == 11
-    assert report["simd_backend"] in ("neon", "sse2", "portable")
+    assert report["simd_backend"] in ("neon", "sse2", "sse4.1", "portable")
     assert {r["window"] for r in report["results"] if r["strategy"] == "simd"} == {8, 32, 64}
     assert len({r["checksum"] for r in report["results"]}) == 1
     assert all(r["samples"] == 250 for r in report["results"])

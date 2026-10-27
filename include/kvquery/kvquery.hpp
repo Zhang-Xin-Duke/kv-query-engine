@@ -16,7 +16,7 @@ struct Record {
 };
 enum class Strategy { scalar, prefetch, amac, simd };
 const char* strategy_name(Strategy) noexcept;
-// Compiled SIMD backend: "neon", "sse2", or "portable".
+// Compiled SIMD backend: "neon", "sse2", "sse4.1", or "portable".
 const char* simd_backend() noexcept;
 struct QueryOptions {
   Strategy strategy = Strategy::scalar;

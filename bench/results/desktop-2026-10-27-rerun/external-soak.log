@@ -1,0 +1,3 @@
+16000000 records/32 bytes batch=256 threads=24 simd round=1 291.618 Mkeys/s
+16000000 records/32 bytes batch=256 threads=24 simd round=2 287.263 Mkeys/s
+16000000 records/32 bytes batch=256 threads=24 simd round=3 286.766 Mkeys/s
