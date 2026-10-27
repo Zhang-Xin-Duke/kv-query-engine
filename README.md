@@ -8,7 +8,7 @@
 [![License: Noncommercial](https://img.shields.io/badge/License%3A_Noncommercial-475569?style=flat-square)](LICENSE)
 [![简体中文](https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-2563eb?style=flat-square)](README.zh-CN.md)
 
-## See it run
+## Demo
 
 Build an immutable snapshot once, then look up a batch of keys and get ordered value views back.
 
