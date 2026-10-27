@@ -2,6 +2,8 @@
 
 [Workstation handoff / continuation notes](docs/HANDOFF_2026-10-27.md)
 
+[Desktop benchmark and pressure-test results — Core Ultra 9 285K, Windows/Cygwin](bench/results/desktop-2026-10-27-rerun/README.md)
+
 [中文](README.zh-CN.md) · [Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md) · [Benchmarks](docs/BENCHMARKS.md) · [License](LICENSE)
 
 ## Introduction

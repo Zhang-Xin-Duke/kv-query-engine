@@ -1,0 +1,9 @@
+16000000 records/32 bytes batch=1 threads=1 scalar round=1 3.22984 Mkeys/s
+16000000 records/32 bytes batch=1 threads=1 amac round=1 3.22819 Mkeys/s
+16000000 records/32 bytes batch=1 threads=1 simd round=1 3.17884 Mkeys/s
+16000000 records/32 bytes batch=1 threads=1 amac round=2 3.19664 Mkeys/s
+16000000 records/32 bytes batch=1 threads=1 simd round=2 3.19398 Mkeys/s
+16000000 records/32 bytes batch=1 threads=1 scalar round=2 3.18276 Mkeys/s
+16000000 records/32 bytes batch=1 threads=1 simd round=3 3.0919 Mkeys/s
+16000000 records/32 bytes batch=1 threads=1 scalar round=3 3.14205 Mkeys/s
+16000000 records/32 bytes batch=1 threads=1 amac round=3 3.17077 Mkeys/s

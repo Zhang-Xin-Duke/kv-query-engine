@@ -1,0 +1,255 @@
+{
+  "created_utc": "2026-10-27T14:48:03.447154+00:00",
+  "source_revision": "6cb0c02cdd76d3685848758cf52e01b94c4db622",
+  "source_dirty": false,
+  "source_sha256": {
+    "CMakeLists.txt": "d9be34645dcbb352323054dc911d04d207027bfb3efd805000600e0f9ab1775b",
+    "src/kvquery.cpp": "3e0054b216c619eb61acfb4429a36ab0259085bb6bc3b49dae4f27d6fa499cff",
+    "include/kvquery/kvquery.hpp": "31c877b2b457188bf9b898d66124c020f69ea61ff847f3b0c063c8d4f38d2d89",
+    "include/kvquery/detail/neighbor_index.hpp": "4b31778c1d4b82b6cfd287c746d139e67420c7c7a454eb969d74397951452e72",
+    "include/kvquery/detail/simd_probe.hpp": "d4b32766ab69bf1045dce743ecf05f792ab63d320f7d5301b0ed5668ef466174",
+    "bench/kvquery_bench.cpp": "4839cbb94dc30f89f91392d326de1c7bd5a9cc3518c855c03dae9f4fddb021f7",
+    "bench/kvquery_concurrency_bench.cpp": "e79d71995a3b4c463dfbb1e0e9650175fe351814ef0fa867d869c7f178c3000b",
+    "bench/run_desktop.py": "2343dbd0a75a0a54f9f7827c47494896543e1b807a53409a4733ee17f2994346",
+    "bench/run_suite.py": "a8940d5e8eaa3b0a3c358a4efd64353a38d0b8597bbfba01396b7055ec7ff9ed",
+    "bench/summarize.py": "e5507c6b472a7326d260500a623dac73b2276add171f6e7e9c734bbdf683f7db",
+    "bench/summarize_inline.py": "305381490f0623f0ed9ccc100562dbd0ebdc13fa87e105322bfc95cad5411193"
+  },
+  "binary_sha256": {
+    "build/tuned/kvquery_bench.exe": "a4157437965e762fe2eb17c104c8106c8e90b903314765df6dd15ba3223eea1c",
+    "build/tuned/kvquery_concurrency_bench.exe": "9258bf347da354f43997a23fccdf1fe1f3640af304799e83df1537a8e904ad2d"
+  },
+  "host": {
+    "os": "CYGWIN_NT-10.0-26200-3.6.12-1.x86_64-x86_64-64bit-WindowsPE",
+    "cpu": "Intel Core Ultra 9 285K"
+  },
+  "build": "Windows 11 Cygwin x86_64; GCC 14.4.0; CMake Release -O3 -DNDEBUG -std=gnu++20 -msse4.1 -mtune=native; no -march=native",
+  "cpu_order": [
+    10,
+    11,
+    12,
+    13,
+    22,
+    23,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+  ],
+  "hit_target": 0.9,
+  "distribution": "uniform",
+  "pressure_cases": [
+    {
+      "name": "external-batch256",
+      "command": [
+        "build/tuned/kvquery_concurrency_bench.exe",
+        "16000000",
+        "32",
+        "256",
+        "2",
+        "3",
+        "full"
+      ],
+      "environment": {
+        "KVQUERY_BENCH_CPUS": "10,11,12,13,22,23,0,1,2,3,4,5,6,7,8,9,14,15,16,17,18,19,20,21"
+      },
+      "file": "external-batch256.json",
+      "measurements": 63
+    },
+    {
+      "name": "inline-batch256",
+      "command": [
+        "build/tuned/kvquery_concurrency_bench.exe",
+        "16000000",
+        "6",
+        "256",
+        "2",
+        "3",
+        "full"
+      ],
+      "environment": {
+        "KVQUERY_BENCH_CPUS": "10,11,12,13,22,23,0,1,2,3,4,5,6,7,8,9,14,15,16,17,18,19,20,21"
+      },
+      "file": "inline-batch256.json",
+      "measurements": 63
+    },
+    {
+      "name": "external-batch1",
+      "command": [
+        "build/tuned/kvquery_concurrency_bench.exe",
+        "16000000",
+        "32",
+        "1",
+        "2",
+        "3",
+        "focused"
+      ],
+      "environment": {
+        "KVQUERY_BENCH_CPUS": "10,11,12,13,22,23,0,1,2,3,4,5,6,7,8,9,14,15,16,17,18,19,20,21"
+      },
+      "file": "external-batch1.json",
+      "measurements": 27
+    },
+    {
+      "name": "external-batch1024",
+      "command": [
+        "build/tuned/kvquery_concurrency_bench.exe",
+        "16000000",
+        "32",
+        "1024",
+        "2",
+        "3",
+        "focused"
+      ],
+      "environment": {
+        "KVQUERY_BENCH_CPUS": "10,11,12,13,22,23,0,1,2,3,4,5,6,7,8,9,14,15,16,17,18,19,20,21"
+      },
+      "file": "external-batch1024.json",
+      "measurements": 27
+    },
+    {
+      "name": "external-soak",
+      "command": [
+        "build/tuned/kvquery_concurrency_bench.exe",
+        "16000000",
+        "32",
+        "256",
+        "20",
+        "3",
+        "full"
+      ],
+      "environment": {
+        "KVQUERY_BENCH_CPUS": "10,11,12,13,22,23,0,1,2,3,4,5,6,7,8,9,14,15,16,17,18,19,20,21",
+        "KVQUERY_BENCH_THREADS": "24",
+        "KVQUERY_BENCH_STRATEGY": "simd"
+      },
+      "file": "external-soak.json",
+      "measurements": 3
+    },
+    {
+      "name": "inline-soak",
+      "command": [
+        "build/tuned/kvquery_concurrency_bench.exe",
+        "16000000",
+        "6",
+        "256",
+        "20",
+        "3",
+        "full"
+      ],
+      "environment": {
+        "KVQUERY_BENCH_CPUS": "10,11,12,13,22,23,0,1,2,3,4,5,6,7,8,9,14,15,16,17,18,19,20,21",
+        "KVQUERY_BENCH_THREADS": "8",
+        "KVQUERY_BENCH_STRATEGY": "amac"
+      },
+      "file": "inline-soak.json",
+      "measurements": 3
+    },
+    {
+      "name": "single-key-confirmation",
+      "command": [
+        "build/tuned/kvquery_concurrency_bench.exe",
+        "16000000",
+        "32",
+        "1",
+        "5",
+        "3",
+        "full"
+      ],
+      "environment": {
+        "KVQUERY_BENCH_CPUS": "10,11,12,13,22,23,0,1,2,3,4,5,6,7,8,9,14,15,16,17,18,19,20,21",
+        "KVQUERY_BENCH_THREADS": "1"
+      },
+      "file": "single-key-confirmation.json",
+      "measurements": 9,
+      "reason": "Prespecified follow-up after observing large single-worker single-key variation in the short sweep; original data retained."
+    }
+  ],
+  "single_thread_suites": [
+    {
+      "name": "standard",
+      "command": [
+        "/usr/bin/python3.12.exe",
+        "-c",
+        "import os,runpy,sys;cpu=int(sys.argv.pop(1));os.sched_setaffinity(0,{cpu});sys.argv[0]='bench/run_suite.py';runpy.run_path(sys.argv[0],run_name='__main__')",
+        "10",
+        "--binary",
+        "build/tuned/kvquery_bench.exe",
+        "--output",
+        "./bench/results/desktop-2026-10-27-rerun/standard.json",
+        "--suite",
+        "standard",
+        "--build-description",
+        "Windows 11 Cygwin x86_64; GCC 14.4.0; CMake Release -O3 -DNDEBUG -std=gnu++20 -msse4.1 -mtune=native; no -march=native"
+      ],
+      "file": "standard.json"
+    },
+    {
+      "name": "inline",
+      "command": [
+        "/usr/bin/python3.12.exe",
+        "-c",
+        "import os,runpy,sys;cpu=int(sys.argv.pop(1));os.sched_setaffinity(0,{cpu});sys.argv[0]='bench/run_suite.py';runpy.run_path(sys.argv[0],run_name='__main__')",
+        "10",
+        "--binary",
+        "build/tuned/kvquery_bench.exe",
+        "--output",
+        "./bench/results/desktop-2026-10-27-rerun/inline.json",
+        "--suite",
+        "inline",
+        "--build-description",
+        "Windows 11 Cygwin x86_64; GCC 14.4.0; CMake Release -O3 -DNDEBUG -std=gnu++20 -msse4.1 -mtune=native; no -march=native"
+      ],
+      "file": "inline.json"
+    },
+    {
+      "name": "inline-scale",
+      "command": [
+        "/usr/bin/python3.12.exe",
+        "-c",
+        "import os,runpy,sys;cpu=int(sys.argv.pop(1));os.sched_setaffinity(0,{cpu});sys.argv[0]='bench/run_suite.py';runpy.run_path(sys.argv[0],run_name='__main__')",
+        "10",
+        "--binary",
+        "build/tuned/kvquery_bench.exe",
+        "--output",
+        "./bench/results/desktop-2026-10-27-rerun/inline-scale.json",
+        "--suite",
+        "inline-scale",
+        "--build-description",
+        "Windows 11 Cygwin x86_64; GCC 14.4.0; CMake Release -O3 -DNDEBUG -std=gnu++20 -msse4.1 -mtune=native; no -march=native"
+      ],
+      "file": "inline-scale.json"
+    }
+  ],
+  "notes": "Closed-loop in-process calls. Three rounds within one pressure process per case; single-thread suites use three independent processes. Latency samples one batch call in 64; excludes queueing/network.",
+  "published_source_revision": "b745ea3ea25fa01a99924631dc576266305205a8",
+  "measured_git_tree": "5ee41d780632b19fad3defb0de0b1781b3659640",
+  "source_sha256_lf": {
+    "CMakeLists.txt": "8d213e6cb14de3f89e20fa40312cfa55907466f4614d057080123e77f75336c3",
+    "src/kvquery.cpp": "feeeb691d5408c0a4a4d1c7935349c6f28f1f4944175ec0504b8669b86c10576",
+    "include/kvquery/kvquery.hpp": "b72301a740cb8124e6d07b18967dfef639c6e17b51df7579e198b70f3ce5e0d4",
+    "include/kvquery/detail/neighbor_index.hpp": "9d1d5cbea6bde6d56a272de51953243a1ae51353b01e9ddf72f051d3bd7c8544",
+    "include/kvquery/detail/simd_probe.hpp": "92e1d20b580f5b26791a531c355544a3c6d538ee0f045b2d985553705a1e4628",
+    "bench/kvquery_bench.cpp": "c3587d6d5243b8fe942ebc8922514a7989ffe4b6a3c5d688cbd1d136719e2a6e",
+    "bench/kvquery_concurrency_bench.cpp": "17edf0fc15c7057953310d27e9f610493b30cd9c05f99facdf6a49d7d9afa7e7",
+    "bench/run_desktop.py": "ecef3a66ec063b77c3cad71368ce4f5d3d95a80ab7b564ed794e29f32cbb4d78",
+    "bench/run_suite.py": "551547cf6d7e59d2762a45810262fa3df4707fb09de379caab0f237b92e79c22",
+    "bench/summarize.py": "7e2f83e7e5c509e58bcfbb087b36bd2f571fe0d2c7492437b545ffa6c10b6876",
+    "bench/summarize_inline.py": "4e2b17bfed6b4a63c40e65876e3923cf6abfb03b6bd4cace07624e0459ffcf3d"
+  },
+  "publication_note": "Workspace prefixes normalized to repository-relative paths in commands/logs; numeric results and measured source/binary hashes unchanged."
+}
