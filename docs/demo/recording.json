@@ -1,0 +1,174 @@
+{
+  "recorded_utc": "2026-10-27T15:25:09.271154+00:00",
+  "events": [
+    {
+      "t": 0.002,
+      "scene": "lookup",
+      "text": "KVQuery: build a snapshot, then query a batch",
+      "kind": "heading"
+    },
+    {
+      "t": 0.363,
+      "scene": "lookup",
+      "text": "Records: 0 = (empty), 7 = hello, 9 = world",
+      "kind": "muted"
+    },
+    {
+      "t": 0.722,
+      "scene": "lookup",
+      "text": "$ kvquery build demo.tsv demo.kwv",
+      "kind": "command"
+    },
+    {
+      "t": 1.256,
+      "scene": "lookup",
+      "text": "saved 3 records",
+      "kind": "output"
+    },
+    {
+      "t": 1.61,
+      "scene": "lookup",
+      "text": "$ kvquery query demo.kwv --strategy simd --window 32 7 8 0 7",
+      "kind": "command"
+    },
+    {
+      "t": 2.109,
+      "scene": "lookup",
+      "text": "7           FOUND       68656c6c6f",
+      "kind": "output"
+    },
+    {
+      "t": 2.465,
+      "scene": "lookup",
+      "text": "8           MISSING",
+      "kind": "output"
+    },
+    {
+      "t": 2.822,
+      "scene": "lookup",
+      "text": "0           FOUND       ",
+      "kind": "output"
+    },
+    {
+      "t": 3.18,
+      "scene": "lookup",
+      "text": "7           FOUND       68656c6c6f",
+      "kind": "output"
+    },
+    {
+      "t": 3.539,
+      "scene": "lookup",
+      "text": "PASS: hit, miss, empty value, duplicate order preserved",
+      "kind": "success"
+    },
+    {
+      "t": 3.899,
+      "scene": "lookup",
+      "text": "CLI values are hex: 68656c6c6f = hello",
+      "kind": "muted"
+    },
+    {
+      "t": 6.272,
+      "scene": "pressure",
+      "text": "Fresh pressure check: shared immutable snapshot",
+      "kind": "heading"
+    },
+    {
+      "t": 6.632,
+      "scene": "pressure",
+      "text": "16,000,000 records | 6-byte values | batches of 256",
+      "kind": "muted"
+    },
+    {
+      "t": 6.988,
+      "scene": "pressure",
+      "text": "8 pinned performance cores | AMAC/32 | 90% target hits",
+      "kind": "muted"
+    },
+    {
+      "t": 7.347,
+      "scene": "pressure",
+      "text": "$ kvquery_concurrency_bench 16000000 6 256 3 1",
+      "kind": "command"
+    },
+    {
+      "t": 7.706,
+      "scene": "pressure",
+      "text": "Building snapshot, warming workers, running 3-second round...",
+      "kind": "muted"
+    },
+    {
+      "t": 14.46,
+      "scene": "pressure",
+      "text": "399.46 million keys/s",
+      "kind": "success"
+    },
+    {
+      "t": 14.814,
+      "scene": "pressure",
+      "text": "1.56 million batch requests/s",
+      "kind": "success"
+    },
+    {
+      "t": 15.174,
+      "scene": "pressure",
+      "text": "Sampled batch P99: 10.30 us",
+      "kind": "output"
+    },
+    {
+      "t": 15.532,
+      "scene": "pressure",
+      "text": "PASS: every timed batch checksum verified",
+      "kind": "success"
+    },
+    {
+      "t": 15.89,
+      "scene": "pressure",
+      "text": "Windows/Cygwin | Core Ultra 9 285K | GCC 14.4.0",
+      "kind": "muted"
+    }
+  ],
+  "pressure": {
+    "records": 16000000,
+    "value_bytes": 6,
+    "batch": 256,
+    "seconds_target": 3,
+    "rounds": 1,
+    "trace_keys_per_worker": 1048576,
+    "latency_sample_every": 64,
+    "index_bytes": 320000000,
+    "value_storage_bytes": 1,
+    "simd_backend": "sse4.1",
+    "compiler": "14.4.0",
+    "cpu_order": [
+      10,
+      11,
+      12,
+      13,
+      22,
+      23,
+      0,
+      1
+    ],
+    "results": [
+      {
+        "threads": 8,
+        "round": 0,
+        "strategy": "amac",
+        "elapsed_seconds": 3.0009124,
+        "batches": 4682624,
+        "keys_per_second": 399462424.828,
+        "batch_requests_per_second": 1560400.09698,
+        "batch_p50_ns": 4000,
+        "batch_p95_ns": 6800,
+        "batch_p99_ns": 10300,
+        "latency_samples": 73166,
+        "min_worker_batches": 117056,
+        "max_worker_batches": 667712,
+        "checksums_verified": true
+      }
+    ]
+  },
+  "binary_sha256": "9258bf347da354f43997a23fccdf1fe1f3640af304799e83df1537a8e904ad2d",
+  "notes": "Actual subprocess output, rendered into a terminal replay. Display commands shorten local executable/temporary paths. Pressure uses KVQUERY_BENCH_CPUS=10,11,12,13,22,23,0,1; KVQUERY_BENCH_THREADS=8; KVQUERY_BENCH_STRATEGY=amac. One 3-second demonstration round; published pressure report uses repeated longer rounds."
+}

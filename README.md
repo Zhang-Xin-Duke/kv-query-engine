@@ -8,6 +8,20 @@
 [![License: Noncommercial](https://img.shields.io/badge/License%3A_Noncommercial-475569?style=flat-square)](LICENSE)
 [![简体中文](https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-2563eb?style=flat-square)](README.zh-CN.md)
 
+## See it run
+
+Build an immutable snapshot once, then look up a batch of keys and get ordered value views back.
+
+![KVQuery runtime demo: build a snapshot, verify hits, misses, empty values and duplicates, then run a 16-million-record pressure check](docs/demo/kvquery-demo.gif)
+
+[Still image](docs/demo/kvquery-demo.png) · [Captured output and reproduction](docs/demo/README.md) · [Full performance evaluation](bench/results/desktop-2026-10-27-rerun/README.md)
+
+- **Correct results:** the demo returns a hit, a miss, a stored empty value, and a repeated key in the original input order. The CLI prints value bytes as hex.
+- **Measured under load:** the fresh demo check reached **399.46 million keys/s** (1.56 million batch requests/s), with sampled batch P99 **10.30 µs** and verified timed checksums.
+- **Repeated validation:** three separate 20-second rounds reached a median **398.61 million keys/s** in the same workload. All 12 correctness test groups passed in SSE4.1, SSE2, and forced-portable builds.
+
+The pressure workload uses **16 million six-byte records, batches of 256 keys, 90% target hits, and eight pinned performance-core workers with AMAC/32** on a Core Ultra 9 285K, Windows/Cygwin, GCC 14.4.0. The animation is a rendered replay of actual command output; the fresh check is one 3-second round. These are in-process lookups, excluding network and request-queue latency. [Raw demo measurement](docs/demo/pressure.json).
+
 ## Introduction
 
 An AI request often begins with a batch of IDs.
