@@ -1,0 +1,5 @@
+1000000/32 kvquery_scalar 32.3063 Mkeys/s
+1000000/32 tsl_robin_map 33.3641 Mkeys/s
+1000000/32 std_unordered_map 17.8987 Mkeys/s
+1000000/32 kvquery_simd32 56.1915 Mkeys/s
+1000000/32 kvquery_amac32 55.0094 Mkeys/s

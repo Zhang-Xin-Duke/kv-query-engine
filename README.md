@@ -5,6 +5,7 @@
 [![API Reference](https://img.shields.io/badge/API_Reference-475569?style=flat-square)](docs/API.md)
 [![Benchmark Guide](https://img.shields.io/badge/Benchmark_Guide-475569?style=flat-square)](docs/BENCHMARKS.md)
 [![Performance Results](https://img.shields.io/badge/Performance_Results-047857?style=flat-square)](bench/results/desktop-2026-10-27-rerun/README.md)
+[![robin-map Comparison](https://img.shields.io/badge/robin--map_Comparison-e5a12a?style=flat-square)](#comparison-with-robin-map)
 [![License: Noncommercial](https://img.shields.io/badge/License%3A_Noncommercial-475569?style=flat-square)](LICENSE)
 [![简体中文](https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-2563eb?style=flat-square)](README.zh-CN.md)
 
@@ -22,6 +23,25 @@ Build an immutable snapshot once, then look up batches of keys and get ordered v
 - **Concurrent pressure:** a separate 16-million-record, six-byte workload with eight workers and batches of 256 reached **401.05M keys/s**, with sampled batch P99 **10.30 µs**, in one fresh three-second round. The [longer repeated pressure tests](bench/results/desktop-2026-10-27-rerun/README.md) provide the stability and saturation results.
 
 Recorded on a Core Ultra 9 285K, Windows/Cygwin, GCC 14.4.0. The animation renders actual CLI output and summaries of fresh raw benchmark JSON, paced for readability. Map comparisons are single-threaded; the pressure chapter uses eight workers. Measurements exclude network and request-queue latency. All 12 correctness groups passed in SSE4.1, SSE2 and forced-portable builds.
+
+## Comparison with robin-map
+
+**KVQuery leads on these batched reads; robin-map has the higher median for single-key requests.** The figure shows every tested method, with all slow rounds included.
+
+![KVQuery versus robin-map: four workload panels with median throughput and min-max whiskers, including robin-map's single-key lead](bench/results/robin-map-2026-10-27/comparison.png)
+
+*Million keys/s on one pinned performance core. Bars show medians of three independent processes; whiskers show min–max, including the two long wall-time intervals. Each panel has its own zero-based scale.*
+
+| Workload | robin-map | KVQuery AMAC/32 | KVQuery SIMD/32 |
+|---|---:|---:|---:|
+| 10K records · batch 256 | 83.52 | 104.19 | 105.55 |
+| 1M records · batch 1 | 3.98 | 3.74 | 3.66 |
+| 1M records · batch 1,024 | 33.36 | 55.66 | 56.19 |
+| 8M six-byte records · batch 256 | 31.34 | 82.47 | 82.02 |
+
+The longer offline comparison contains **60 timed measurements and 11,160,811 validated latency samples**. Heavy workloads run for at least 30 seconds per method per process; diagnostics run for at least 10 seconds. Inputs, hash mixing, and ordered-view result consumption are matched. Actual capacities differ with each container's growth policy.
+
+[Full report and reproducible method](bench/results/robin-map-2026-10-27/README.md) · [Download all 218 original files](https://github.com/Zhang-Xin-Duke/kv-query-engine/releases/download/benchmark-robin-map-2026-10-27/offline-comparison-2026-10-27.zip) · [Release and SHA-256](https://github.com/Zhang-Xin-Duke/kv-query-engine/releases/tag/benchmark-robin-map-2026-10-27)
 
 ## Introduction
 

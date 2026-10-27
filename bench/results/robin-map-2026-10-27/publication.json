@@ -1,0 +1,16 @@
+{
+  "archive_release": "https://github.com/Zhang-Xin-Duke/kv-query-engine/releases/tag/benchmark-robin-map-2026-10-27",
+  "archive_download": "https://github.com/Zhang-Xin-Duke/kv-query-engine/releases/download/benchmark-robin-map-2026-10-27/offline-comparison-2026-10-27.zip",
+  "archive_sha256": "1136e95f555c927b9cb5b17644da59f65e8d786c6102a4d964b73f2d4a4de462",
+  "archive_files": 218,
+  "archive_bytes": 38654061,
+  "expanded_bytes": 146469506,
+  "raw_data_unchanged": true,
+  "measured_source_manifest": "manifest.json inside complete ZIP",
+  "public_summaries_from": "summary.csv and validated raw per-process JSON",
+  "all_intervals_retained": true,
+  "plot_versions": {
+    "matplotlib": "3.11.2",
+    "numpy": "2.5.4"
+  }
+}

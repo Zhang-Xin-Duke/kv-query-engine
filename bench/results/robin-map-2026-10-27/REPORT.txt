@@ -1,0 +1,79 @@
+KVQuery versus Tessil robin-map — extended offline comparison
+
+Robin-map: 91362aab8f2c63ef90bf7c21fb2c3283ded5ae48 (v1.4.1-2-g91362aa). Upstream: https://github.com/Tessil/robin-map
+Host: Core Ultra 9 285K, 24 cores, approximately 64 GB RAM; all measured lookups use logical CPU 10, a performance core. Windows 11/Cygwin, GCC 14.4.0.
+No measurement runner/harness network requests. The only dependency acquisition was the initial robin-map clone; the exact upstream source archive is retained.
+
+Protocol: 3 independent processes per workload, 5 methods per process. Each heavy-workload method runs for at least 30 seconds; cache and single-key diagnostic methods run for at least 10 seconds. Nominal timed lookup work: 1,200 seconds (20 minutes). Actual measured wall time is recorded, including pauses.
+One timed interval per method per process. Workload order reverses on the middle repeat; method order rotates/reverses deterministically by seed. All methods share identical records and query traces within a process. Queries are a cyclic 1,048,576-key uniform trace with a 90% hit target.
+
+Result semantics: input-ordered optional string views; no payload copies. The robin-map and std::unordered_map fixtures stay alive throughout the process. Native KVQuery batches retain snapshot ownership. Timing includes result allocation/destruction, lookup, KVQuery owner handling, and value length/endpoint-byte consumption. Full result bytes are checked across the entire trace outside timing; completed timed batches are checked against independently generated expected checksums. Since timed methods complete different numbers of batches, their final checksum totals need not equal each other.
+Same initial 64-bit mixer and requested maximum map load factor 0.8. Actual load factors and capacities differ because growth policies differ; they are recorded. All comparison code uses the same compiler/optimization/ISA tuning. The harness uses -std=c++20; the separately built KVQuery library uses -std=gnu++20 with the same -O3 -DNDEBUG -msse4.1 -mtune=native settings. Full original flags and commands are retained.
+
+THROUGHPUT: process medians, million keys/s. AMAC and SIMD windows are 32.
+Workload | std::unordered_map | tsl::robin_map | KV Scalar | KV AMAC/32 | KV SIMD/32
+cache-resident | 78.57 | 83.52 | 103.30 | 104.19 | 105.55
+single-key | 2.62 | 3.98 | 3.65 | 3.74 | 3.66
+large-batch | 17.90 | 33.36 | 34.84 | 55.66 | 56.19
+large-small-values | 16.34 | 31.34 | 35.12 | 82.47 | 82.02
+
+MATCHED RATIOS TO ROBIN-MAP: median of same-process ratios [min–max].
+Workload | KV Scalar | KV AMAC/32 | KV SIMD/32
+cache-resident | 1.233x [1.232–1.241] | 1.243x [1.243–1.252] | 1.261x [1.261–1.268]
+single-key | 0.920x [0.912–1.048] | 0.939x [0.932–1.059] | 0.924x [0.909–1.012]
+large-batch | 1.066x [0.968–1.093] | 1.703x [1.649–1.706] | 1.680x [0.342–1.684]
+large-small-values | 1.142x [0.110–1.156] | 2.629x [2.572–2.713] | 2.651x [2.613–2.698]
+
+PER-PROCESS VARIATION AND SAMPLED BATCH LATENCY
+Workload | Method | Throughput min / median / max Mkeys/s | P50 / P95 / P99 us (medians of process percentiles)
+cache-resident | std_unordered_map | 78.02 / 78.57 / 78.64 | 3.30 / 3.60 / 3.70
+cache-resident | tsl_robin_map | 83.23 / 83.52 / 83.90 | 3.10 / 3.30 / 3.40
+cache-resident | kvquery_scalar | 102.86 / 103.30 / 103.45 | 2.50 / 2.70 / 2.90
+cache-resident | kvquery_amac32 | 103.84 / 104.19 / 104.27 | 2.50 / 2.70 / 2.90
+cache-resident | kvquery_simd32 | 105.36 / 105.55 / 105.80 | 2.40 / 2.70 / 2.80
+single-key | std_unordered_map | 2.56 / 2.62 / 3.01 | 0.40 / 0.70 / 0.80
+single-key | tsl_robin_map | 3.96 / 3.98 / 4.31 | 0.30 / 0.50 / 0.50
+single-key | kvquery_scalar | 3.63 / 3.65 / 4.52 | 0.30 / 0.50 / 0.50
+single-key | kvquery_amac32 | 3.69 / 3.74 / 4.57 | 0.30 / 0.40 / 0.50
+single-key | kvquery_simd32 | 3.62 / 3.66 / 4.36 | 0.30 / 0.40 / 0.50
+large-batch | std_unordered_map | 17.77 / 17.90 / 19.66 | 55.10 / 61.80 / 73.80
+large-batch | tsl_robin_map | 32.67 / 33.36 / 33.96 | 30.40 / 32.90 / 35.90
+large-batch | kvquery_scalar | 32.31 / 34.84 / 37.13 | 28.70 / 34.50 / 38.10
+large-batch | kvquery_amac32 | 55.01 / 55.66 / 57.95 | 18.10 / 20.70 / 24.60
+large-batch | kvquery_simd32 | 11.19 / 56.19 / 57.06 | 18.00 / 19.50 / 24.20
+large-small-values | std_unordered_map | 15.79 / 16.34 / 16.36 | 15.70 / 17.10 / 19.00
+large-small-values | tsl_robin_map | 30.40 / 31.34 / 31.48 | 8.20 / 8.70 / 9.20
+large-small-values | kvquery_scalar | 3.46 / 35.12 / 35.96 | 7.10 / 7.70 / 8.10
+large-small-values | kvquery_amac32 | 80.61 / 82.47 / 82.77 | 3.10 / 3.40 / 3.60
+large-small-values | kvquery_simd32 | 81.89 / 82.02 / 83.44 | 3.10 / 3.40 / 3.60
+
+CAPACITY AND BUILD DETAILS
+Workload | KV logical MiB | KV buckets | Robin buckets / actual load | Std buckets / actual load | Build seconds KV / Robin / Std (process medians)
+cache-resident | 0.50 | 12500 | 16384 / 0.610 | 12983 / 0.770 | 0.001 / 0.001 / 0.001
+single-key | 49.59 | 1250000 | 2097152 / 0.477 | 1337629 / 0.748 | 0.070 / 0.144 / 0.274
+large-batch | 49.59 | 1250000 | 2097152 / 0.477 | 1337629 / 0.748 | 0.067 / 0.145 / 0.275
+large-small-values | 152.59 | 10000000 | 16777216 / 0.477 | 10352717 / 0.773 | 0.602 / 1.106 / 2.412
+The KV byte count is index plus external values, not process RSS. Map bucket counts/load factors are not total memory measurements. No cross-container memory-saving ratio is claimed. Build time includes each container reserve/allocation/population, but excludes shared record generation.
+
+STABILITY AND RETAINED LONG INTERVALS
+2 one-second-monitor intervals lasted more than 2 seconds. They are retained and included in wall-time throughput; no completed round was filtered, restarted, or replaced. Sampled P99 may miss rare long pauses. No OS/allocator/scheduling/clock cause is established.
+large-small-values process 1, kvquery_scalar: interval 35.279s, ending at 38.280s; interval rate 0.634 Mkeys/s.
+large-batch process 3, kvquery_simd32: interval 42.544s, ending at 52.549s; interval rate 1.126 Mkeys/s.
+
+PROJECT SCOPE
+KVQuery is an immutable uint64-to-bytes snapshot engine with batch scheduling, compact nodes, small-value inlining, snapshot-owned result lifetimes and checked snapshot persistence.
+Tessil robin-map is a generic mutable C++ Robin Hood hash-map/set library. Its const find interface is adapted to ordered batch views here; insertion/erasure and serializer/deserializer hooks are broader features outside this read-only timing. Upstream source and MIT license are preserved. KVQuery licensing and source provenance are preserved separately.
+This is a complete storage/API/read-path comparison, not an isolated measurement of SIMD, hashing, or memory footprint. Different table representations and capacity rounding are part of the tested configurations.
+
+LIMITS
+These are synthetic single-thread read-only lookups on one shared desktop. The run is not a concurrent-service, network-QPS, open-loop queueing, update-throughput or persistence benchmark. The single-key SIMD path uses a direct comparison; it is not a vector-comparison speedup test. Three process repetitions support min/median/max descriptions, not strong significance claims for small differences.
+Performance conclusions must be tied to each workload. All measured methods, slower results, long intervals and unselected smoke/pilot artifacts are preserved. The SQLite pilot uses owned copies and a different protocol; it is excluded from every selected-comparison table.
+
+REPRODUCTION AND FILES
+manifest.json: exact revisions, commands, build flags, seeds, host, capacities and source/binary SHA-256.
+runs/: raw per-process JSON, console logs, every sampled batch latency, and every retained interval throughput row.
+summary.csv and per-process-summary.csv: tabular summaries. throughput-timeseries.csv: all monitor intervals. validation.json: checksum/sample/percentile/accounting checks.
+source/: exact source archives, benchmark harness, runner, original library flags, original project license/NOTICE and upstream MIT license. compiled-inputs.zip preserves exact measured source bytes/line endings. bin/: measured executable and library.
+The benchmark executable pins CPU 10 and requires the recorded Cygwin runtime and SSE4.1-capable hardware. On another host, inspect allowed CPU topology and update the pin explicitly. Original Cygwin/runtime dependencies are in toolchain-runtime.txt.
+To rebuild from extracted source archives, compile KVQuery src/kvquery.cpp with its retained GNU C++20 library flags, then compile the retained harness with the manifest command and the pinned robin-map include directory. The saved runner documents all 12 process commands and their order.
+SHA256SUMS.json hashes all retained files before this bundle was packaged. The final ZIP contains the complete expanded results directory.

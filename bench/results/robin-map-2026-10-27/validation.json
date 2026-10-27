@@ -1,0 +1,32 @@
+{
+  "validated_utc": "2026-10-27T16:25:33.224226+00:00",
+  "processes": 12,
+  "timed_measurements": 60,
+  "latency_samples": 11160811,
+  "nominal_timed_seconds": 1200,
+  "actual_timed_seconds": 1230.851253,
+  "all_full_trace_byte_checks_passed": true,
+  "all_timed_checksums_verified": true,
+  "raw_samples_reproduce_all_percentiles": true,
+  "timeseries_counts_and_rates_verified": true,
+  "long_intervals_retained": [
+    {
+      "case": "large-small-values",
+      "repeat": 1,
+      "method": "kvquery_scalar",
+      "elapsed_seconds": 38.2798209,
+      "interval_seconds": 35.279032,
+      "batches": 87424,
+      "mkeys_s": 0.634386567069
+    },
+    {
+      "case": "large-batch",
+      "repeat": 3,
+      "method": "kvquery_simd32",
+      "elapsed_seconds": 52.5486721,
+      "interval_seconds": 42.5442503,
+      "batches": 46784,
+      "mkeys_s": 1.12604677864
+    }
+  ]
+}
