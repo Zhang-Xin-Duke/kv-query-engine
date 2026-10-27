@@ -177,7 +177,11 @@ void simd_residual_queries() {
 #elif defined(__aarch64__) && defined(__ARM_NEON)
   CHECK(std::string(simd_backend()) == "neon");
 #elif defined(__SSE2__)
+#if defined(__SSE4_1__)
+  CHECK(std::string(simd_backend()) == "sse4.1");
+#else
   CHECK(std::string(simd_backend()) == "sse2");
+#endif
 #endif
   CHECK(std::string(strategy_name(Strategy::simd)) == "simd");
   using Index = detail::NeighborIndex;
@@ -202,7 +206,7 @@ void simd_residual_queries() {
   }
   auto s = Snapshot::build(records);
   CHECK(s->stats().collisions > 0);
-  for (size_t n : {0, 1, 2, 3, 7, 31, 32, 33, 255, 256, 257, 513}) {
+  for (size_t n : {0, 1, 2, 3, 7, 31, 32, 33, 63, 64, 65, 95, 96, 97, 255, 256, 257, 513}) {
     std::vector<uint64_t> keys;
     for (size_t i = 0; i < n; ++i)
       keys.push_back(i % 3 ? records[(i * 17) % records.size()].key : misses[i % misses.size()]);

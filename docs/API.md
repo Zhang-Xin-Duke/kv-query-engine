@@ -111,7 +111,7 @@ A result batch keeps its snapshot alive. Borrowed views copied out of a batch re
 ```cpp
 Stats Snapshot::stats() const noexcept;
 const char* strategy_name(Strategy) noexcept;
-const char* simd_backend() noexcept; // "neon", "sse2", or "portable"
+const char* simd_backend() noexcept; // "neon", "sse2", "sse4.1", or "portable"
 ```
 
 | Field | Meaning |
@@ -155,4 +155,8 @@ Exit status is 0 on success, 1 on a reported operation error, and 2 for command/
 
 ## SIMD build selection
 
-Baseline ARM64 NEON or x86 SSE2 is selected at compile time. No AVX flags or new CPU requirements are added. Other targets use the portable two-key helper. Configure with `-DKVQUERY_FORCE_PORTABLE_SIMD=ON` to test the fallback explicitly. `simd_backend()` reports the backend compiled into the library; a window of 1 uses direct single-lane comparisons.
+Baseline ARM64 NEON or x86 SSE2 is selected at compile time. On x86, explicitly enabling SSE4.1 (for example, GCC/Clang `-msse4.1`) selects packed 64-bit equality and reports `sse4.1`; that binary requires an SSE4.1-capable CPU. This is compile-time selection, without runtime dispatch. Default builds keep the baseline requirements. Other targets use the portable two-key helper. Configure with `-DKVQUERY_FORCE_PORTABLE_SIMD=ON` to test the fallback explicitly. `simd_backend()` reports the backend compiled into the library; a window of 1 uses direct single-lane comparisons.
+
+The SIMD executor constructs comparison vectors directly from scalar keys. While at least one full window of input remains, every state stays active and a streaming loop omits drain-only activity checks. Once fewer inputs remain, the general loop handles partial windows and independent lane completion. Both loops retain collision-chain positions and preserve input order.
+
+For an explicitly tuned build on the measured Core Ultra 9 285K with GCC, use `-DCMAKE_CXX_FLAGS="-msse4.1 -mtune=native"` with a Release configuration. These flags tune all query strategies equally. Re-run correctness checks before timing; broad `-march=native` builds failed checks in the measured Cygwin environment and were excluded.

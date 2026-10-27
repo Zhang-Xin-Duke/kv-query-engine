@@ -41,3 +41,11 @@ if(BUILD_TESTING)
   add_test(NAME kvquery_benchmark_smoke COMMAND ${Python3_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/benchmark_test.py $<TARGET_FILE:kvquery_bench>)
 endif()
+if(CMAKE_SYSTEM_NAME MATCHES "Linux|CYGWIN")
+  add_executable(kvquery_concurrency_bench bench/kvquery_concurrency_bench.cpp)
+  target_link_libraries(kvquery_concurrency_bench PRIVATE kvquery Threads::Threads)
+  if(BUILD_TESTING)
+    add_test(NAME kvquery_concurrency_smoke COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/concurrency_test.py $<TARGET_FILE:kvquery_concurrency_bench>)
+  endif()
+endif()

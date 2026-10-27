@@ -249,7 +249,7 @@ BatchResult Snapshot::query(std::span<const uint64_t> keys, QueryOptions options
       idx.prefetch(s.bucket);
     };
     for (size_t i = 0; i < width; ++i) assign(states[i]);
-    const auto advance = [&](State& state, const Index::FlatNode& node, bool matched) {
+    const auto advance = [&]<bool streaming = false>(State& state, const Index::FlatNode& node, bool matched) {
       if (!node.IsEmpty() && matched)
         store(state.input, &node);
       else if (!node.IsEmpty() && node.ChainLink()) {
@@ -257,13 +257,35 @@ BatchResult Snapshot::query(std::span<const uint64_t> keys, QueryOptions options
         idx.prefetch(state.bucket);
         return;
       }
-      if (next_input < keys.size())
+      if constexpr (streaming) {
+        assign(state);
+      } else if (next_input < keys.size())
         assign(state);
       else {
         state.active = false;
         --active;
       }
     };
+    // Streaming states cannot become inactive while at least width inputs remain.
+    // Keep drain-only activity checks and exhausted-input branches off this path.
+    while (keys.size() - next_input >= width && width) {
+      size_t base = 0;
+      for (; base + 1 < width; base += 2) {
+        auto& a = states[base];
+        auto& b = states[base + 1];
+        const auto& na = idx.node(a.bucket);
+        const auto& nb = idx.node(b.bucket);
+        const unsigned matches = detail::equal_key_mask(
+            keys[a.input], keys[b.input], na.key, nb.key);
+        advance.template operator()<true>(a, na, (matches & 1U) != 0);
+        advance.template operator()<true>(b, nb, (matches & 2U) != 0);
+      }
+      if (base < width) {
+        auto& state = states[base];
+        const auto& node = idx.node(state.bucket);
+        advance.template operator()<true>(state, node, node.key == keys[state.input]);
+      }
+    }
     while (active) {
       size_t base = 0;
       for (; base + 1 < width; base += 2) {
@@ -273,7 +295,7 @@ BatchResult Snapshot::query(std::span<const uint64_t> keys, QueryOptions options
           const auto& na = idx.node(a.bucket);
           const auto& nb = idx.node(b.bucket);
           const unsigned matches = detail::equal_key_mask(
-              {keys[a.input], keys[b.input]}, {na.key, nb.key});
+              keys[a.input], keys[b.input], na.key, nb.key);
           advance(a, na, (matches & 1U) != 0);
           advance(b, nb, (matches & 2U) != 0);
         } else {
