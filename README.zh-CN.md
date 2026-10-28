@@ -1,30 +1,53 @@
 # KVQuery: A Compact C++20 Engine for Batched Key-Value Lookups
 
-**面向批量键值查询的紧凑型 C++20 引擎**
+**面向读多写少场景的进程内 C++20 批量 KV 查询引擎。** 输入为 `uint64_t` Key，Value 为变长字节数据；查询按输入顺序返回数据视图，由结果批次持有快照，保证视图在使用期间有效。
 
-[English](README.md) · [设计与实现](docs/ARCHITECTURE.md) · [API](docs/API.md) · [性能评测](docs/BENCHMARKS.md) · [非商业许可](LICENSE)
+引擎提供紧凑邻域哈希索引、小 Value 内联、预取、AMAC 和 SIMD 批量探测，适用于特征快照、文档元数据、实体属性及参考数据的批量读取。
 
-## 为什么做这个项目
+[English](README.md) · [快速开始](#快速开始) · [设计与实现](docs/ARCHITECTURE.md) · [API](docs/API.md) · [测量方法](docs/BENCHMARKS.md) · [非商业许可](LICENSE)
 
-一次 AI 请求，往往从一批 ID 开始。
+## 运行演示
 
-在 RAG 中，向量检索找到相关片段后，还需要根据文档 ID 取回正文；特征服务需要把用户、商品或设备 ID 转成模型所需的属性；Embedding 查询则把一组离散 ID 映射成向量。模型真正开始计算之前，系统已经完成了一轮数据查找与组织。[RAG 文档读取](https://reference.langchain.com/python/langchain-classic/retrievers/multi_vector/MultiVectorRetriever)、[在线特征读取](https://docs.feast.dev/getting-started/components/online-store)和[Embedding 查表](https://docs.pytorch.org/tutorials/intermediate/torchrec_intro_tutorial.html)都体现了这类访问模式。
+![实际运行的有序查询、商品读取、持久化和批量查询对照](docs/demo/kvquery-demo-extended.gif)
 
-例如，一次检索得到了 64 个文档 ID。接下来的任务是把这 64 份正文或属性找出来，按原来的顺序交给下游。数据即使已经在内存中，查询仍要定位索引桶、处理哈希冲突，再访问对应的数据。逐条完成这些操作时，前一个节点决定下一个节点的位置，内存访问之间会形成依赖。批量请求也提供了另一个机会：多个 Key 的查询相互独立，可以提前预取，或交错推进它们的查找状态。
+演示包含命中、缺失、空值、重复 Key、商品目录读取和独立进程加载快照，并回放批量查询对照及并发读结果。[章节、记录与复现步骤](docs/demo/README.md)。
 
-这个项目围绕这条读取路径构建：**紧凑地组织索引，提供多种批量执行方式，并把数据加载、查询、结果生命周期和验证串成一个可独立使用的 C++ 组件。**
+## 性能评测
 
-适合承载的数据包括特征快照、文档与元数据、实体属性、商品目录、规则和参考数据。调用方用 `uint64_t` 标识记录，Value 作为不透明字节保存；文本、序列化记录和向量都可以由应用层编码后存入。
+以下两套对照均来自 **Intel Core Ultra 9 285K、约 64 GB 内存、Windows 11/Cygwin、GCC 14.4.0**，编译选项为 `-O3 -DNDEBUG -msse4.1 -mtune=native`。单线程测试固定在已识别为性能核心的逻辑 CPU 10。吞吐单位为 **Mkeys/s，即每秒百万次 Key 查询**；Prefetch、AMAC、SIMD 的窗口均为 32。
 
-## 功能概览
+### 与 std::unordered_map 对照
 
-- **紧凑索引**：16 字节节点，内联编码 Value 位置、长度和冲突链相对偏移。
-- **小值内联**：0–6 字节的 Value 直接保存在节点内，更大的 Value 使用连续外部数据区。
-- **批量执行**：逐条查询、前瞻预取、AMAC 和 SIMD 批量探测，运行时选择执行策略与窗口。
-- **明确的结果语义**：保持输入顺序，区分缺失值与空值，保留重复查询的位置。
-- **不可变快照**：构建完成后并发读取，每批结果持有其对应快照。
-- **文件持久化**：带版本、长度和校验和的字节格式，加载时校验并重建索引。
-- **完整工具链**：CMake 库、CLI、差分测试、并发测试、Sanitizer 配置和服务器基准工具。
+每类负载运行三个独立进程，每进程三轮，每轮 1,048,576 个查询 Key；同一进程中的各方法使用相同记录和查询输入。下表为进程中位数。
+
+| 负载 | std::unordered_map | Scalar | Prefetch | AMAC | SIMD |
+|---|---:|---:|---:|---:|---:|
+| 1 万条 · 32 字节 Value · 批量 256 | 76.18 | 100.70 | 94.34 | 102.94 | 104.18 |
+| 100 万条 · 32 字节 Value · 批量 1,024 | 18.51 | 36.24 | 49.84 | 57.79 | 56.86 |
+| 100 万条 · 32 字节 Value · 批量 256 · 命中率 30% | 17.20 | 44.44 | 58.08 | 64.26 | 69.78 |
+| 25 万条 · 256 字节 Value · 批量 256 | 21.52 | 41.76 | 47.31 | 51.13 | 50.83 |
+| 100 万条 · 6 字节 Value · 批量 256 | 19.85 | 63.16 | 82.36 | 93.41 | 96.31 |
+
+除低命中率负载外，目标命中率均为 90%。[完整结果、批量延迟与执行命令](docs/demo/README.md#matched-comparison-protocol) · [原始记录](docs/demo/recording.json)。
+
+### 与 robin-map 对照
+
+![四类负载中全部方法的吞吐及进程范围](bench/results/robin-map-2026-10-27/comparison.png)
+
+这套独立对照每类负载使用三个独立进程；较大负载每种方法的目标计时区间为 30 秒，缓存内和单 Key 诊断为 10 秒。下表为进程中位数，图中同时保留最小值、最大值和慢轮次。
+
+| 负载 | robin-map | KVQuery AMAC/32 | KVQuery SIMD/32 |
+|---|---:|---:|---:|
+| 1 万条 · 批量 256 | 83.52 | 104.19 | 105.55 |
+| 100 万条 · 批量 1 | 3.98 | 3.74 | 3.66 |
+| 100 万条 · 批量 1,024 | 33.36 | 55.66 | 56.19 |
+| 800 万条 · 6 字节 Value · 批量 256 | 31.34 | 82.47 | 82.02 |
+
+这些批量负载中 KVQuery 的吞吐中位数更高；单 Key 负载中 robin-map 的中位数更高。两套对照的计时均包含有序结果分配、查找、数据视图消费及结果销毁，完整结果校验在计时外执行；测量范围是进程内只读查询，不含网络和请求排队延迟。
+
+[对照方法及全部五种方法](bench/results/robin-map-2026-10-27/README.md) · [完整原始数据归档](https://github.com/Zhang-Xin-Duke/kv-query-engine/releases/tag/benchmark-robin-map-2026-10-27)
+
+其他记录：[台式机并发与内联评测](bench/results/desktop-2026-10-27-rerun/README.md) · [Duke 历史基准](docs/HISTORICAL_BENCHMARKS.zh-CN.md)。基准设计参考 NeighborHash 论文及其公开复现工程 [[1]](#reference-1), [[2]](#reference-2)。
 
 ## 架构
 
@@ -92,7 +115,7 @@
 
 前瞻预取增加了提前发起内存访问的机会，也需要额外计算后续桶位置。AMAC 保留每条查询的当前位置与输入序号，遇到冲突就预取下一节点，然后切换到其他状态；初始填充与尾部收尾也沿用这套交错执行方式。
 
-SIMD 路径使用 128 位向量同时比较两个 64 位 Key：ARM64 使用 NEON，x86 使用 SSE2，其余目标使用可移植回退。未完成的查询保留各自的冲突链位置，完成后补入下一条输入；单个剩余槽位直接比较，避免越界加载。桶计算、离散节点加载和链跳转仍按槽位执行。`kvquery::simd_backend()` 返回实际编译的后端。
+SIMD 路径使用 128 位向量同时比较两个 64 位 Key：ARM64 使用 NEON；x86 默认使用 SSE2，编译启用 SSE4.1 时使用对应的 64 位比较指令，其余目标使用可移植回退。未完成的查询保留各自的冲突链位置，完成后补入下一条输入；单个剩余槽位直接比较，避免越界加载。桶计算、离散节点加载和链跳转仍按槽位执行。`kvquery::simd_backend()` 返回实际编译的后端。
 
 ```sh
 build/release/kvquery query "$demo_dir/data.kwv" --strategy simd --window 32 7 8 0 7
@@ -111,13 +134,6 @@ build/release/kvquery query "$demo_dir/data.kwv" --strategy simd --window 32 7 8
 快照文件保存 Key、Value 长度和 Value 字节，加载时检查格式、预算和校验和，再构建内存索引。使用明确的字节格式，使文件不依赖 C++ 对象布局、内存地址和当前哈希表的物理排列。启动时需要支付一次解析与索引构建成本。
 
 保存先写独占创建的临时文件并同步文件内容，再通过同文件系统的硬链接发布目标路径。已有文件会保留，版本切换可以通过新文件名和新的快照句柄组织。[文件格式与发布流程](docs/ARCHITECTURE.md#6-持久化与加载)中给出了具体步骤。
-
-## 四个核心设计
-
-1. **建库时处理冲突，简化查询路径。** 两个 Key 落到同一位置时，在附近双向寻找空位；目标桶若被其他冲突链的节点占用，先迁移该节点并修复链接，再放入新节点。查询只需比较 Key 并沿链查找。
-2. **索引与 Value 分开存储。** 索引节点只保存 Key、Value 的位置与长度、下一节点的相对位置；变长 Value 放在独立连续内存里，让查找只访问必要内容。
-3. **通过不可变快照支持并发读取。** 构建完成后索引与 Value 保持不变，每次查询独立保存进度与结果，读取之间无需为修改索引而相互等待。
-4. **SIMD 成组比较与残余状态调度。** 向量指令同时比较多个 Key，保留未完成查询的探测状态，并用新查询补充已完成的位置。当前原生路径每组比较两个 64 位 Key。
 
 ## 快速开始
 
@@ -168,107 +184,6 @@ int main() {
 ```
 
 通过 CMake 目标 `kvquery` 链接库。完整参数、资源预算、异常和生命周期示例见 [API 参考](docs/API.md)。
-
-## 性能评测
-
-基准设计参考 NeighborHash 论文及其公开复现工程 [[1]](#reference-1), [[2]](#reference-2)。以下结果全部来自 2026-10-24 的 Duke Linux 课程服务器：Xeon E5-2440 v2、8 核 16 线程、约 16 GB 内存、Ubuntu 22.04.5、GCC 11.4.0，使用 `-std=c++20 -O3 -DNDEBUG`，固定 CPU 0，SIMD 后端为 SSE2。
-
-8 类负载各运行 3 个独立进程，每进程 3 轮。表格为进程中位数，单位是每秒百万次 Key 查询；Prefetch、AMAC、SIMD 统一展示窗口 32。
-
-
-![服务器上的执行器吞吐对比](docs/figures/executor-throughput.svg)
-
-*图中为进程中位数，误差线表示进程最小值与最大值。*
-
-<details>
-<summary>展开完整数值表</summary>
-
-| Workload | unordered_map | Scalar | Prefetch/32 | AMAC/32 | SIMD/32 |
-|---|---:|---:|---:|---:|---:|
-| small-uniform | 17.78 | 32.97 | 31.40 | 33.50 | 32.85 |
-| large-single | 1.59 | 2.77 | 2.96 | 2.96 | 2.89 |
-| large-batch32 | 6.13 | 14.26 | 15.52 | 15.68 | 15.75 |
-| large-batch256 | 6.23 | 15.33 | 18.96 | 21.49 | 21.15 |
-| large-batch1024 | 5.86 | 15.30 | 19.30 | 21.98 | 22.13 |
-| large-low-hit | 5.25 | 19.62 | 24.64 | 28.22 | 28.03 |
-| large-hot | 9.25 | 31.77 | 36.98 | 39.19 | 38.54 |
-| wide-values | 7.24 | 17.18 | 19.25 | 20.76 | 20.64 |
-
-</details>
-
-百万条记录、每批 1024 个 Key 的负载下，SIMD/32 达到 **22.13 Mkeys/s**，约为 Scalar 的 **1.45 倍**、`std::unordered_map` 的 **3.78 倍**；同一负载的 AMAC/32 为 21.98 Mkeys/s。这些 32/256 字节负载使用外部 Value，测量的是最终查询实现。执行器应按批次、工作集和命中分布选择。
-
-所有路径使用相同输入并返回有序数据视图，完整结果比对在计时外完成。计时包含结果分配、查询、所有权管理、Value 长度与首尾字节读取，以及结果销毁。
-
-[原始结果与哈希](bench/results/duke-x86-inline-2026-10-24.json) · [完整吞吐与 P99 报告](bench/results/duke-x86-inline-2026-10-24.md) · [环境记录](bench/results/duke-x86-inline-2026-10-24.environment.txt) · [测量方法](docs/BENCHMARKS.md)
-
-```sh
-bash bench/run_linux.sh bench/results/linux-suite 0
-```
-
-### 小 Value 内联对比
-
-在同一个进程内比较两种布局，使用相同记录和查询输入，并轮换测量顺序。下表均为百万条记录、每批 256 个 Key、90% 目标命中率、SIMD/32；吞吐单位为 Mkeys/s。逻辑空间只包含索引和外部 Value 区域，不等于进程 RSS。
-
-
-![小值收益和混合值代价](docs/figures/inline-tradeoffs.svg)
-
-*1.0 表示吞吐相同，图中同时展示收益与回退。*
-
-<details>
-<summary>展开完整数值表</summary>
-
-| Value distribution | External-only | Inlining enabled | Paired ratio | Logical storage MB, before → after |
-|---|---:|---:|---:|---:|
-| 1 byte | 29.34 | 31.82 | 1.083× | 21.00 → 20.00 |
-| 2 bytes | 27.84 | 32.21 | 1.157× | 22.00 → 20.00 |
-| 4 bytes | 25.47 | 31.76 | 1.244× | 24.00 → 20.00 |
-| 6 bytes | 24.26 | 31.78 | 1.310× | 26.00 → 20.00 |
-| 7 bytes (control) | 24.06 | 23.89 | 0.993× | 27.00 → 27.00 |
-| 32 bytes (control) | 21.15 | 20.94 | 0.987× | 52.00 → 52.00 |
-| 50% 6-byte + 50% 32-byte | 22.27 | 21.44 | 0.960× | 39.00 → 36.00 |
-
-</details>
-
-6 字节 Value 的 SIMD 吞吐提高 **31.0%**，逻辑空间减少 **23.1%**，索引节点保持 16 字节；同一负载的 Scalar 提高 23.6%，AMAC/32 提高 28.1%。小工作集的 SIMD 收益为 2.2%，30% 命中率时为 9.7%，收益随负载变化。
-
-6/32 字节各占一半时，逻辑空间减少 7.7%，但 SIMD 吞吐降低 4.0%、Scalar 降低 6.9%。混合布局增加了命中后的表示判断，可以设置 `BuildOptions::inline_small_values=false` 使用全部外置布局。
-
-[16 类完整对比与进程范围](bench/results/duke-inline-2026-10-24.md) · [原始数据](bench/results/duke-inline-2026-10-24.json) · [内联实现](docs/INLINE_EVALUATION.md)
-
-```sh
-bash bench/run_linux.sh bench/results/linux-inline 0 inline
-```
-
-### 扩大工作集后的收益
-
-固定每条 Value 为 6 字节、每批 256 个 Key、90% 目标命中率，每轮统一查询 **1,048,576 个 Key**。沿用同一服务器、同一二进制、CPU 0 和成对测量方法；每种规模运行 3 个独立进程、每进程 3 轮。吞吐单位为 Mkeys/s，收益为逐进程比值的中位数。
-
-
-![百万至八百万条记录的吞吐与逻辑空间](docs/figures/inline-scaling.svg)
-
-*同一二进制比较两种布局，逻辑空间包含索引与外部 Value 区域。*
-
-<details>
-<summary>展开完整数值表</summary>
-
-| Records | SIMD/32 external | SIMD/32 inline | SIMD gain | AMAC/32 gain | Logical storage MB, before → after |
-|---|---:|---:|---:|---:|---:|
-| 1,000,000 | 25.07 | 31.94 | +27.4% | +27.0% | 26 → 20 |
-| 4,000,000 | 20.08 | 28.78 | +41.8% | +43.3% | 104 → 80 |
-| 8,000,000 | 18.17 | 26.57 | +46.0% | +48.2% | 208 → 160 |
-
-</details>
-
-SIMD 相对收益随记录数从百万增加到八百万，由 27.4% 提高到 46.0%，AMAC/32 在八百万条时提高 48.2%。八百万条的逻辑空间从 208 MB 降至 160 MB。数据集扩大时绝对吞吐仍会降低，内联减轻了相对于全部外置布局的下降。
-
-这三种规模的索引约为 20、80、160 MB，服务器 L3 为 20 MiB；结果符合扩大工作集后，避免访问独立 Value 区域更有价值的预期。这次扩大的是数据集和查询覆盖面，执行仍为单线程。
-
-[扩容原始数据](bench/results/duke-inline-scale-2026-10-24.json) · [完整结果与进程范围](bench/results/duke-inline-scale-2026-10-24.md)
-
-```sh
-bash bench/run_linux.sh bench/results/linux-inline-scale 0 inline-scale
-```
 
 ## 测试与验证
 

@@ -2,7 +2,7 @@
 
 ## 自动化检查
 
-Linux CI 使用四组配置运行完整 CTest：GCC Release、Clang Debug、Clang ASan/UBSan、强制可移植 SIMD 的 GCC Release。每组包含十一个测试组，当前工作流见 [.github/workflows/ci.yml](../.github/workflows/ci.yml)。
+Linux CI 使用四组配置运行完整 CTest：GCC Release、Clang Debug、Clang ASan/UBSan、强制可移植 SIMD 的 GCC Release。每组包含十二个测试组，其中十一个跨平台测试组，Linux/Cygwin 额外包含并发基准检查。当前工作流见 [.github/workflows/ci.yml](../.github/workflows/ci.yml)。
 
 | 测试组 | 覆盖内容 |
 |---|---|
@@ -17,6 +17,7 @@ Linux CI 使用四组配置运行完整 CTest：GCC Release、Clang Debug、Clan
 | inline | 0–6 字节二进制值、链修改与搬移、混合布局、长度边界、跨布局文件加载、视图复制/移动和预算 |
 | cli_roundtrip | 构建、检查、四种查询方式、数字边界和错误输入 |
 | benchmark_smoke | JSON 输出、结果校验和、样本数量和百分位顺序 |
+| concurrency_smoke | Linux/Cygwin 并发基准输出、结果校验与线程配置 |
 
 测试使用显式检查，Release 构建同样执行断言逻辑。随机差分以独立映射为参考，确定性样本确保冲突和迁移分支被触发。
 
@@ -40,7 +41,7 @@ ASan/UBSan 和 TSan 使用独立构建目录。CLI 集成测试需要 Python 3�
 
 ## SIMD backend validation
 
-Run the same eleven CTest groups in a separate forced-fallback build:
+Run the full platform-specific CTest suite in a separate forced-fallback build:
 
 ```sh
 cmake -S . -B build/portable -DCMAKE_BUILD_TYPE=Release -DKVQUERY_FORCE_PORTABLE_SIMD=ON

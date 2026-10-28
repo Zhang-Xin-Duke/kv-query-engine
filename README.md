@@ -1,36 +1,47 @@
 # KVQuery: A Compact C++20 Engine for Batched Key-Value Lookups
 
+KVQuery is an **in-process C++20 query engine for read-heavy, immutable key-value snapshots**. It maps `uint64_t` keys to variable-length byte values and returns views in input order, with explicit snapshot ownership to preserve result lifetime.
+
+The engine combines a compact neighbor-hash index, optional small-value inlining, prefetching, AMAC and SIMD batch probing. Applications include materialized features, document metadata, entity attributes and reference-data snapshots.
+
 [![Quick Start](https://img.shields.io/badge/Quick_Start-2563eb?style=flat-square)](#build-and-quick-start)
 [![Architecture](https://img.shields.io/badge/Architecture-475569?style=flat-square)](docs/ARCHITECTURE.md)
 [![API Reference](https://img.shields.io/badge/API_Reference-475569?style=flat-square)](docs/API.md)
 [![Benchmark Guide](https://img.shields.io/badge/Benchmark_Guide-475569?style=flat-square)](docs/BENCHMARKS.md)
-[![Performance Results](https://img.shields.io/badge/Performance_Results-047857?style=flat-square)](bench/results/desktop-2026-10-27-rerun/README.md)
-[![robin-map Comparison](https://img.shields.io/badge/robin--map_Comparison-e5a12a?style=flat-square)](#comparison-with-robin-map)
+[![Performance Results](https://img.shields.io/badge/Performance_Results-047857?style=flat-square)](#performance-evaluation)
+[![robin-map Comparison](https://img.shields.io/badge/robin--map_Comparison-e5a12a?style=flat-square)](#robin-map-comparison)
 [![License: Noncommercial](https://img.shields.io/badge/License%3A_Noncommercial-475569?style=flat-square)](LICENSE)
 [![简体中文](https://img.shields.io/badge/%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-2563eb?style=flat-square)](README.zh-CN.md)
 
-## Demo
+## Demonstration
 
-Build an immutable snapshot once, then look up batches of keys and get ordered value views back. This **two-minute, nine-chapter replay** demonstrates real lookups, application examples, matched comparisons with `std::unordered_map`, and concurrent read pressure.
+![Recorded KVQuery demonstration: ordered lookups, catalog reads, persistence and batch-query comparisons](docs/demo/kvquery-demo-extended.gif)
 
-![Extended KVQuery demo: ordered lookup, product catalog, snapshot reload, five std::unordered_map comparisons, and concurrent pressure](docs/demo/kvquery-demo-extended.gif)
+The recorded demonstration covers hits, misses, empty values, duplicate keys, a product-catalog lookup and snapshot reload in a separate process. It also replays measured batch-query comparisons and concurrent reads. [Chapter guide, recording data and reproduction](docs/demo/README.md).
 
-[Lookup still](docs/demo/kvquery-demo.png) · [Catalog still](docs/demo/kvquery-catalog.png) · [Comparison still](docs/demo/kvquery-comparison.png) · [Chapter guide and raw measurements](docs/demo/README.md)
+## Performance evaluation
 
-- **Correctness and use cases:** verify hits, misses, empty values and repeated keys; fetch product records in request order; reload a saved snapshot from a new process.
-- **Matched map comparisons:** five workloads cover cache-resident data, large batches, miss-heavy traffic, wide records and six-byte values. Each uses three independent processes with three rounds per process, identical query inputs, and input-ordered value views. Every timed checksum matches.
-- **Concrete comparison:** for one million 32-byte records, batches of 1,024 keys and 90% target hits, `std::unordered_map` measured **18.51M keys/s**, AMAC/32 **57.79M** (**3.12×** map throughput), and SIMD/32 **56.86M**. These are process medians on one pinned performance core.
-- **Concurrent pressure:** a separate 16-million-record, six-byte workload with eight workers and batches of 256 reached **401.05M keys/s**, with sampled batch P99 **10.30 µs**, in one fresh three-second round. The [longer repeated pressure tests](bench/results/desktop-2026-10-27-rerun/README.md) provide the stability and saturation results.
+Both comparison suites were measured on **Intel Core Ultra 9 285K, approximately 64 GB RAM, Windows 11/Cygwin and GCC 14.4.0**, using `-O3 -DNDEBUG -msse4.1 -mtune=native`. Single-thread runs are pinned to logical CPU 10, identified as a performance core. Throughput is in **million keys per second (Mkeys/s)**; AMAC, Prefetch and SIMD use window 32.
 
-Recorded on a Core Ultra 9 285K, Windows/Cygwin, GCC 14.4.0. The animation renders actual CLI output and summaries of fresh raw benchmark JSON, paced for readability. Map comparisons are single-threaded; the pressure chapter uses eight workers. Measurements exclude network and request-queue latency. All 12 correctness groups passed in SSE4.1, SSE2 and forced-portable builds.
+### std::unordered_map comparison
 
-## Comparison with robin-map
+Each workload uses three independent processes and three rounds per process, with 1,048,576 query keys per round. Each process measures the map and all four engine strategies on identical input records and query traces. Values are process medians.
 
-**KVQuery leads on these batched reads; robin-map has the higher median for single-key requests.** The figure shows every tested method, with all slow rounds included.
+| Workload | std::unordered_map | Scalar | Prefetch | AMAC | SIMD |
+|---|---:|---:|---:|---:|---:|
+| 10K records · 32-byte values · batch 256 | 76.18 | 100.70 | 94.34 | 102.94 | 104.18 |
+| 1M records · 32-byte values · batch 1,024 | 18.51 | 36.24 | 49.84 | 57.79 | 56.86 |
+| 1M records · 32-byte values · batch 256 · 30% hits | 17.20 | 44.44 | 58.08 | 64.26 | 69.78 |
+| 250K records · 256-byte values · batch 256 | 21.52 | 41.76 | 47.31 | 51.13 | 50.83 |
+| 1M records · 6-byte values · batch 256 | 19.85 | 63.16 | 82.36 | 93.41 | 96.31 |
 
-![KVQuery versus robin-map: four workload panels with median throughput and min-max whiskers, including robin-map's single-key lead](bench/results/robin-map-2026-10-27/comparison.png)
+The target hit rate is 90% except for the miss-heavy case. [Full results, batch latency and exact commands](docs/demo/README.md#matched-comparison-protocol) · [Recorded comparison data](docs/demo/recording.json).
 
-*Million keys/s on one pinned performance core. Bars show medians of three independent processes; whiskers show min–max, including the two long wall-time intervals. Each panel has its own zero-based scale.*
+### robin-map comparison
+
+![All measured methods across four workloads, with process ranges](bench/results/robin-map-2026-10-27/comparison.png)
+
+This separate suite uses three independent processes per workload. Timed intervals target 30 seconds per method for larger workloads and 10 seconds for cache-resident and single-key diagnostics. Values are process medians; the chart retains min–max ranges and slow intervals.
 
 | Workload | robin-map | KVQuery AMAC/32 | KVQuery SIMD/32 |
 |---|---:|---:|---:|
@@ -39,36 +50,19 @@ Recorded on a Core Ultra 9 285K, Windows/Cygwin, GCC 14.4.0. The animation rende
 | 1M records · batch 1,024 | 33.36 | 55.66 | 56.19 |
 | 8M six-byte records · batch 256 | 31.34 | 82.47 | 82.02 |
 
-The longer offline comparison contains **60 timed measurements and 11,160,811 validated latency samples**. Heavy workloads run for at least 30 seconds per method per process; diagnostics run for at least 10 seconds. Inputs, hash mixing, and ordered-view result consumption are matched. Actual capacities differ with each container's growth policy.
+KVQuery has higher median throughput for these batched workloads; robin-map has the higher single-key median. Both suites include ordered result allocation, lookup, value-view consumption and destruction. Full result validation runs outside timing. The measurements cover read-only, in-process queries and exclude network and request-queue latency.
 
-[Full report and reproducible method](bench/results/robin-map-2026-10-27/README.md) · [Download all 218 original files](https://github.com/Zhang-Xin-Duke/kv-query-engine/releases/download/benchmark-robin-map-2026-10-27/offline-comparison-2026-10-27.zip) · [Release and SHA-256](https://github.com/Zhang-Xin-Duke/kv-query-engine/releases/tag/benchmark-robin-map-2026-10-27)
+[Comparison protocol and all five methods](bench/results/robin-map-2026-10-27/README.md) · [Complete original data archive](https://github.com/Zhang-Xin-Duke/kv-query-engine/releases/tag/benchmark-robin-map-2026-10-27)
 
-## Introduction
+Additional measurements: [desktop concurrency and inlining](bench/results/desktop-2026-10-27-rerun/README.md) · [historical Duke benchmarks](docs/HISTORICAL_BENCHMARKS.md). The benchmark design follows the NeighborHash paper and reproduction artifact [[1]](#reference-1), [[2]](#reference-2).
 
-An AI request often begins with a batch of IDs.
+## Architecture
 
-![Records become immutable storage; a batch returns ordered value views](docs/figures/overview.svg)
+![Immutable records, compact index and input-ordered value views](docs/figures/overview.svg)
 
-*A concrete batch includes a hit, a miss, an empty value and a repeated key.*
+The builder creates a fixed-size index and a value region, then publishes an immutable snapshot. A query selects an execution strategy and returns input-ordered optional views. Each result batch retains its snapshot; applications refresh data by selecting a newly built or loaded snapshot for subsequent queries.
 
-A retrieval pipeline identifies relevant chunks and then fetches their documents. A feature service turns entity IDs into model inputs. An embedding lookup maps discrete IDs to vectors. These reads prepare the data that downstream computation consumes; examples appear in the official documentation for [LangChain retrieval](https://reference.langchain.com/python/langchain-classic/retrievers/multi_vector/MultiVectorRetriever), [Feast online features](https://docs.feast.dev/getting-started/components/online-store), and [PyTorch embedding tables](https://docs.pytorch.org/tutorials/intermediate/torchrec_intro_tutorial.html).
-
-Consider a search returning 64 document IDs. Before constructing the final context, the application must retrieve the corresponding records and preserve their association with those IDs. Even with resident data, each lookup must locate a bucket, follow any collision chain, and access the value. Dependent memory accesses can limit progress, while independent lookups within the batch create opportunities to prefetch and interleave work.
-
-This C++20 engine brings together a compact immutable index, configurable batch execution, snapshot persistence, and explicit result ownership. It is suitable for read-heavy reference data such as document metadata, materialized features, entity attributes, catalogs, and rules. Applications encode records as `uint64_t` keys and opaque value bytes.
-
-## Features
-
-- **16-byte index nodes:** packed value offsets, lengths, and relative collision links.
-- **Small-value inlining:** values of 0–6 bytes share the existing node; larger values use contiguous external storage.
-- **Four execution strategies:** scalar, lookahead prefetch, AMAC, and SIMD batch probing, selected per call.
-- **Ordered results:** duplicate keys retain their positions; missing and empty values are distinct.
-- **Immutable snapshots:** concurrent readers share stable index and value storage.
-- **Owned result lifetime:** a result batch retains the snapshot behind its value views.
-- **Checked persistence:** versioned little-endian records, length checks, resource budgets, and checksums.
-- **Independent tooling:** CMake library, CLI, correctness tests, sanitizers, Linux CI, and a benchmark suite.
-
-## Design
+## Design choices
 
 ### 1. Resolve collisions during construction
 
@@ -90,7 +84,7 @@ A 16-byte index node stores a 64-bit key and a packed data word with a 10-bit si
 
 The builder calculates the value storage budget and reserves the buffer before copying records. This keeps node size fixed and avoids repeatedly growing the value region during construction.
 
-Inlining uses existing node space and preserves all 64 key bits. It adds a layout check to view construction and reserves some length codes: external lengths below 229376 are direct, and larger values use a four-byte length prefix. `BuildOptions::inline_small_values = false` selects the external-only layout for comparison. Both layouts return snapshot-owned views and read/write the same version-1 files.
+Inlining avoids a separate value-region access for small values while adding a representation check during view construction. `BuildOptions::inline_small_values = false` selects the external-only layout. Both layouts retain all 64 key bits and share the version-1 persistence format; [encoding details](docs/ARCHITECTURE.md) document the size limits and length extensions.
 
 ### 3. Share immutable snapshots across readers
 
@@ -110,7 +104,7 @@ Applications refresh data by building or loading another snapshot and choosing w
 
 SIMD batch probing gathers two candidate keys and compares them with a 128-bit vector instruction. Unfinished queries retain their input and collision-chain positions in a residual-state window. Completed positions immediately accept new queries; the remaining probes drain with the same scheduling rules. Original input positions preserve output order and duplicates even when probes finish at different times.
 
-ARM64 uses NEON; x86 uses SSE2, comparing both 32-bit halves of each full 64-bit key. Other targets use a portable fallback. Odd or draining single lanes use direct comparisons. Hashing, noncontiguous node loads, chain transitions and value-view construction remain scalar. `kvquery::simd_backend()` reports the compiled backend.
+ARM64 uses NEON. x86 uses SSE2 by default, comparing both 32-bit halves of each 64-bit key, or native 64-bit equality when SSE4.1 is enabled by compiler flags. Other targets use a portable fallback. Odd or draining single lanes use direct comparisons. Hashing, noncontiguous node loads, chain transitions and value-view construction remain scalar. `kvquery::simd_backend()` reports the compiled backend.
 
 | Strategy | Execution | Window |
 |---|---|---|
@@ -181,149 +175,9 @@ int main() {
 
 Link the CMake target `kvquery`. Keep either the result batch or its source snapshot alive while using value views. [API reference](docs/API.md) covers options, budgets, persistence, and errors.
 
-## Performance evaluation
-
-The benchmark design follows the NeighborHash paper and its public reproduction artifact [[1]](#reference-1), [[2]](#reference-2).
-
-All results below were measured on the **Duke Linux course server** on October 24, 2026: Intel Xeon E5-2440 v2 (8 cores / 16 logical CPUs), approximately 16 GB RAM, Ubuntu 22.04.5, GCC 11.4.0, and `-std=c++20 -O3 -DNDEBUG`. The single-threaded benchmark is pinned to CPU 0; the native SIMD backend is SSE2. No `-march=native` flags are used.
-
-Each workload runs in **three independent processes, three rounds per process**. The table reports median throughput in **million keys per second**. Prefetch, AMAC and SIMD use a fixed window of 32 here; all tested windows and batch P50/P95/P99 remain in the raw results.
-
-
-![Throughput of Map, Scalar, AMAC and SIMD on eight server workloads](docs/figures/executor-throughput.svg)
-
-*Server process medians with min/max whiskers. All throughput bars start at zero; the complete table also includes Prefetch.*
-
-<details>
-<summary>Full standard-workload throughput table</summary>
-
-| Workload | unordered_map | Scalar | Prefetch/32 | AMAC/32 | SIMD/32 |
-|---|---:|---:|---:|---:|---:|
-| small-uniform | 17.78 | 32.97 | 31.40 | 33.50 | 32.85 |
-| large-single | 1.59 | 2.77 | 2.96 | 2.96 | 2.89 |
-| large-batch32 | 6.13 | 14.26 | 15.52 | 15.68 | 15.75 |
-| large-batch256 | 6.23 | 15.33 | 18.96 | 21.49 | 21.15 |
-| large-batch1024 | 5.86 | 15.30 | 19.30 | 21.98 | 22.13 |
-| large-low-hit | 5.25 | 19.62 | 24.64 | 28.22 | 28.03 |
-| large-hot | 9.25 | 31.77 | 36.98 | 39.19 | 38.54 |
-| wide-values | 7.24 | 17.18 | 19.25 | 20.76 | 20.64 |
-
-</details>
-
-For `large-batch1024` (one million records, 32-byte values, batches of 1,024 keys, 90% target hit rate), SIMD/32 reaches **22.13 Mkeys/s**: **1.45× Scalar** and **3.78× `std::unordered_map`**. AMAC/32 reaches 21.98 Mkeys/s in the same workload. These 32/256-byte workloads use external values even with inlining enabled; they measure the final query implementation. Batch size, working set and hit distribution guide executor selection.
-
-All methods process identical inputs and return input-ordered value views. Full result equality is checked outside the timed sections. Timing includes result allocation, lookup, ownership, value length/end-byte consumption, and result destruction. These are in-process batch-lookup measurements.
-
-- [Raw server results and source/binary hashes](bench/results/duke-x86-inline-2026-10-24.json)
-- [Full throughput and batch P99 report](bench/results/duke-x86-inline-2026-10-24.md)
-- [Recorded server environment](bench/results/duke-x86-inline-2026-10-24.environment.txt)
-- [Workloads and measurement protocol](docs/BENCHMARKS.md)
-- [SIMD implementation and analysis](docs/SIMD_EVALUATION.md)
-
-Reproduce the complete build, correctness checks and 24-process suite on a Linux host with GCC, Python 3, `ar`, and `taskset`:
-
-```sh
-bash bench/run_linux.sh bench/results/linux-suite 0
-```
-
-A CMake build can also run the suite through `bench/run_suite.py`; its `--build-description` option records the actual compilation setup.
-
-### Small-value inlining: paired comparison
-
-Both layouts run in the same process with identical records and query traces,
-rotating and alternating measurement order. The table uses one million records,
-batches of 256 keys, a 90% hit target and SIMD/32. Rates are process medians in
-Mkeys/s; ratios are medians of matched per-process ratios. Logical storage counts
-index nodes plus the external value region, excluding allocator overhead and
-other process memory.
-
-
-![Paired inline throughput ratios, including the mixed-value regression](docs/figures/inline-tradeoffs.svg)
-
-*The 1.0 line is equal throughput. Small-value gains and the mixed-value cost are both shown.*
-
-<details>
-<summary>Exact paired ratios and logical-storage table</summary>
-
-| Value distribution | External-only | Inlining enabled | Paired ratio | Logical storage MB, before → after |
-|---|---:|---:|---:|---:|
-| 1 byte | 29.34 | 31.82 | 1.083× | 21.00 → 20.00 |
-| 2 bytes | 27.84 | 32.21 | 1.157× | 22.00 → 20.00 |
-| 4 bytes | 25.47 | 31.76 | 1.244× | 24.00 → 20.00 |
-| 6 bytes | 24.26 | 31.78 | 1.310× | 26.00 → 20.00 |
-| 7 bytes (control) | 24.06 | 23.89 | 0.993× | 27.00 → 27.00 |
-| 32 bytes (control) | 21.15 | 20.94 | 0.987× | 52.00 → 52.00 |
-| 50% 6-byte + 50% 32-byte | 22.27 | 21.44 | 0.960× | 39.00 → 36.00 |
-
-</details>
-
-For six-byte values, inlining improves throughput by **31.0%** and reduces logical
-storage by **23.1%**, keeping every node at 16 bytes. Scalar improves by 23.6% and
-AMAC/32 by 28.1% in the same case. The gain depends on value access and working-set
-size: the cache-resident six-byte case improves SIMD by 2.2%, and a 30%-hit case by
-9.7%. The full report retains every length from zero through six and all controls.
-
-The half-small/half-large case reduces storage by 7.7% but lowers SIMD throughput
-by 4.0% (Scalar by 6.9%). Mixed layouts add a representation decision to successful
-lookups; this tradeoff should be measured for the application's value distribution.
-The external-only build option provides a direct alternative:
-
-```cpp
-kvquery::BuildOptions options;
-options.inline_small_values = false;
-auto snapshot = kvquery::Snapshot::build(records, options);
-```
-
-- [Paired raw results, hashes and all windows](bench/results/duke-inline-2026-10-24.json)
-- [All 16 cases, process ranges and storage counts](bench/results/duke-inline-2026-10-24.md)
-- [Inline layout, lifetime and implementation details](docs/INLINE_EVALUATION.md)
-
-```sh
-bash bench/run_linux.sh bench/results/linux-inline 0 inline
-```
-
-### Larger working sets
-
-The scaling test holds value size at six bytes, batch size at 256, target hit rate
-at 90%, and **1,048,576 queries per round** across all three sizes. It uses the same
-server, binary, CPU affinity and paired measurement protocol. Each case runs in
-three independent processes with three rounds. Throughput is in Mkeys/s; gains
-are matched per-process ratio medians.
-
-
-![SIMD throughput and logical storage at one, four and eight million records](docs/figures/inline-scaling.svg)
-
-*The same server binary measures both layouts. Logical storage counts index and external-value bytes.*
-
-<details>
-<summary>Exact scaling results</summary>
-
-| Records | SIMD/32 external | SIMD/32 inline | SIMD gain | AMAC/32 gain | Logical storage MB, before → after |
-|---|---:|---:|---:|---:|---:|
-| 1,000,000 | 25.07 | 31.94 | +27.4% | +27.0% | 26 → 20 |
-| 4,000,000 | 20.08 | 28.78 | +41.8% | +43.3% | 104 → 80 |
-| 8,000,000 | 18.17 | 26.57 | +46.0% | +48.2% | 208 → 160 |
-
-</details>
-
-The relative SIMD gain rises from 27.4% at one million records to 46.0% at eight
-million; AMAC/32 reaches 48.2%. Inlined logical storage at eight million records is
-160 MB versus 208 MB externally. Absolute throughput falls as the dataset grows,
-while inlining reduces the loss relative to external-only storage. The index
-arrays span roughly 20, 80 and 160 MB on a server with a 20 MiB L3 cache. This
-trend is consistent with avoiding external-value accesses becoming more valuable
-as the working set expands. These are single-threaded working-set measurements.
-
-- [Scaling raw results and source/binary hashes](bench/results/duke-inline-scale-2026-10-24.json)
-- [Scaling process ranges and full strategy results](bench/results/duke-inline-scale-2026-10-24.md)
-
-```sh
-bash bench/run_linux.sh bench/results/linux-inline-scale 0 inline-scale
-```
-
 ## Validation
 
-Eleven CTest groups cover edge values, forced collisions and relocation, randomized differential lookup, result ownership, concurrent access, persistence failures, golden file bytes, SIMD lane/tail handling, inline payloads and cross-layout loading, CLI integration, and benchmark output validation. Linux CI builds GCC Release, Clang Debug, Clang ASan/UBSan, and forced-portable Release configurations.
+Eleven portable CTest groups cover edge values, forced collisions and relocation, randomized differential lookup, result ownership, concurrent access, persistence failures, golden file bytes, SIMD lane/tail handling, inline payloads and cross-layout loading, CLI integration, and benchmark output validation. Linux and Cygwin add a twelfth group for the concurrent benchmark. Linux CI builds GCC Release, Clang Debug, Clang ASan/UBSan, and forced-portable Release configurations.
 
 ```sh
 cmake -S . -B build/asan -DKVQUERY_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
