@@ -148,14 +148,13 @@ four other keys. This is a demonstration workload, not a production trace.
 
 | Client cache | Backend batch RPC attempts per trial | End-to-end elapsed time |
 | --- | ---: | ---: |
-| Disabled | 200, 200 | 3.881 s, 3.906 s |
-| 64 entries, 60 s TTL | 5, 5 | 2.589 s, 2.609 s |
+| Disabled | 200, 200 | 3.890 s, 3.902 s |
+| 64 entries, 60 s TTL | 5, 5 | 2.599 s, 2.607 s |
 
 Trials ran in the order disabled, enabled, enabled, disabled. Each client batch
 also checked both replicas' status, including cache hits; those status requests
 are not counted in the backend batch RPC column. The results show the effect in
 this small controlled run, not an established throughput or tail-latency gain.
 The same run checked even replica selection, a version transition and service
-after one replica process was terminated. It used the pre-consolidation build;
-the worker, client, compact adapter and query-engine source files were checked
-byte-for-byte against this repository's integrated implementation.
+after one replica process was terminated. It built the consolidated repository's
+worker and query engine together inside the NCShare allocation.
