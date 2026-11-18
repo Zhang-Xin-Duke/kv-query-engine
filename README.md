@@ -196,9 +196,9 @@ ThreadSanitizer is available in a separate build through `-DKVQUERY_TSAN=ON`. Se
 
 ## Source and license
 
-[Figure sources and reproduction](docs/figures/README.md) document which original illustrations informed the redrawn diagrams and which server records drive the charts.
+[Figure sources and reproduction](docs/figures/README.md) describe the redrawn diagrams and the records that drive the charts.
 
-The engine adapts an existing neighbor-hash index and AMAC implementation. [PROVENANCE](docs/PROVENANCE.md) records the source and project changes.
+Component rights and project changes are described in [NOTICE](NOTICE) and [PROVENANCE](docs/PROVENANCE.md).
 
 Original project contributions use the **PolyForm Noncommercial License 1.0.0**. Commercial use is not licensed. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 

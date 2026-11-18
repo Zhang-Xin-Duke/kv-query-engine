@@ -3,8 +3,5 @@ Required Notice: Copyright (c) 2026 Xin Zhang.
 KVQueryEngine's original contributions are licensed under the PolyForm Noncommercial
 License 1.0.0, provided in LICENSE. Commercial use is not licensed under this grant.
 
-KVQueryEngine includes adaptations of a user-supplied source checkout. Original
-rights in those portions remain with their respective holders. Source file hashes
-and adaptation scope are recorded in docs/PROVENANCE.md; the source checkout is
-maintained privately. The project license grants rights only in contributions the
-licensor owns; it does not relicense inherited material.
+The project license grants rights only in contributions the licensor owns.
+Third-party rights remain with their respective holders.

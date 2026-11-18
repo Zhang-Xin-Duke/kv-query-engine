@@ -195,7 +195,7 @@ BatchResult Snapshot::query(std::span<const uint64_t> keys, QueryOptions options
       store(i, idx.find(keys[i]));
     }
   } else if (options.strategy == Strategy::amac) {
-    // Adapted from supplied raw_hash_map.h::amac_find: independent lookup states
+    // AMAC loop: independent lookup states
     // advance one link per visit; completed states refill from remaining input.
     // Input positions preserve duplicate keys and order; portable prefetch also
     // covers initial fill. Continue round-robin during drain, including short batches.

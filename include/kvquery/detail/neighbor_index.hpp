@@ -1,4 +1,4 @@
-// Adapted from supplied immutable_neighbor_hash_table.h; see docs/PROVENANCE.md.
+// Neighbor-hash index; see docs/PROVENANCE.md for rights information.
 #pragma once
 #include <algorithm>
 #include <bit>
@@ -169,7 +169,7 @@ class NeighborIndex {
     return false;
   }
 
-  // The three-case insertion below follows the supplied implementation:
+  // The three-case insertion below handles the following cases:
   // empty home; chain splice; relocate a lodger before claiming its slot.
   void Insert_(Entry e) {
     const uint32_t home = HashBucket_(e.key);

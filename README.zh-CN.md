@@ -201,7 +201,7 @@ ctest --test-dir build/asan --output-on-failure
 
 ## 资料与许可
 
-索引设计与 AMAC 基于既有实现整理与适配，具体来源和改动见 [PROVENANCE](docs/PROVENANCE.md)。应用背景参考 Feast、LangChain 和 PyTorch 的官方文档；基准设计参考 NeighborHash 论文及其公开复现工程 [[1]](#reference-1), [[2]](#reference-2)。
+组件权利和项目改动见 [NOTICE](NOTICE) 与 [PROVENANCE](docs/PROVENANCE.md)。应用背景参考 Feast、LangChain 和 PyTorch 的官方文档；基准设计参考 NeighborHash 论文及其公开复现工程 [[1]](#reference-1), [[2]](#reference-2)。
 
 项目原创部分采用 **PolyForm Noncommercial License 1.0.0**，禁止商业使用。许可全文见 [LICENSE](LICENSE)，版权和沿用部分说明见 [NOTICE](NOTICE)。
 
