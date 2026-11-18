@@ -1,7 +1,7 @@
 # Source provenance and attribution
 
 KVQueryEngine adapts a supplied neighbor-hash implementation into an independent
-C++20 batch-query engine. This record identifies the source and the project's changes.
+C++20 batch-query engine. This record summarizes the adaptations and attribution.
 
 Original KVQueryEngine contributions are licensed under [PolyForm Noncommercial 1.0.0](../LICENSE).
 Inherited portions retain their original rights, as recorded in [NOTICE](../NOTICE).
@@ -9,8 +9,8 @@ The supplied source checkout has no attached license grant. NOTICE records the s
 
 ## Recorded source
 
-Source project: `athena/kfc-peta-lite` (local user-supplied checkout).
-Source commit: `94fb5a1bd7358dc46c64c29d68ddcede6a963a83`.
+The supplied source checkout is maintained privately. The original rights remain
+with their respective holders; no additional license grant is implied.
 
 | Relative source path | SHA-256 of supplied file |
 | --- | --- |

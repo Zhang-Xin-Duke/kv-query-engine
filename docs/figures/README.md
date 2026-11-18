@@ -7,7 +7,7 @@ contrast in both light and dark GitHub themes.
 
 ## Original documentation reviewed
 
-The supplied `kfc-peta-lite/docs/images` illustrations provided useful visual
+Illustrations in the supplied source checkout provided useful visual
 models for packed buckets, separate index/data storage, neighbor links and reader
 lifetimes. They describe a broader system and a different bucket representation.
 The README assets are newly drawn from the current code, with the relevant ideas
