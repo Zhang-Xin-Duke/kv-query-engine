@@ -44,3 +44,18 @@ jobs:
         run: cmake --build build/ci --parallel 2
       - name: Test
         run: ctest --test-dir build/ci --output-on-failure
+
+  online-build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        run: |
+          python3 -m venv "$RUNNER_TEMP/cmake-env"
+          "$RUNNER_TEMP/cmake-env/bin/pip" install cmake==3.31.6
+          echo "$RUNNER_TEMP/cmake-env/bin" >> "$GITHUB_PATH"
+      - name: Configure combined engine
+        run: cmake -S . -B build/online -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DKVQUERY_ONLINE_INDEX=ON -DENGINE_BUNDLED_DEPS=ON
+      - name: Build online worker and snapshot builder
+        run: cmake --build build/online --target online_index_worker online_index --parallel 2

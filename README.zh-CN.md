@@ -4,6 +4,8 @@
 
 引擎提供紧凑邻域哈希索引、小 Value 内联、预取、AMAC 和 SIMD 批量探测，适用于特征快照、文档元数据、实体属性及参考数据的批量读取。
 
+仓库还包含可选的**分片在线刷新与副本层**：每个 shard 使用同一套紧凑查询内核，依次替换 shard，并提供固定快照版本的批量读取。客户端提供有界热点统计、TTL/LRU 缓存、并发请求合并、副本轮询和有限重试。[构建与运行说明](docs/ONLINE_REFRESH.md)。原有单机查询 API 和性能结果保留各自的测试范围。
+
 [English](README.md) · [快速开始](#快速开始) · [设计与实现](docs/ARCHITECTURE.md) · [API](docs/API.md) · [测量方法](docs/BENCHMARKS.md) · [非商业许可](LICENSE)
 
 ## 运行演示

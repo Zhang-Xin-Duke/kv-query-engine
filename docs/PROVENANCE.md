@@ -29,6 +29,13 @@ Source commit: `94fb5a1bd7358dc46c64c29d68ddcede6a963a83`.
 
 ## Project additions and changes
 
+The `online_index` directory adds the partitioned snapshot loader, epoch-based
+reclamation, online worker and replica/client layer. Its C++ runtime includes
+adapted inherited source and retains the rights of the respective holders; the
+license on this project's original contributions does not relicense that
+material. Source mapping for those files is maintained separately. The compact
+adapter links to this repository's existing `kvquery` implementation.
+
 Standalone C++20/CMake packaging; unsigned link encoding; full modular wrapping for
 small tables; reserved value offset so zero keys/empty values are representable;
 explicit duplicate rejection; bounded rebuild retries with a new mixer seed and larger table; ordered batch results retaining

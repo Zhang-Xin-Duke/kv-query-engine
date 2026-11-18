@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package index_engine;
+
+// all used as json
+message ShardMeta {
+  string dir_name = 1;
+  int64 items_total_count = 2;
+  string index_file_name = 3;
+  int64 index_file_size = 4;
+  string data_file_name = 5;
+  int64 data_file_size = 6;
+}
+
+message SnapshotMeta {
+  repeated ShardMeta shard_info_list = 1;
+  map<int32, int64> partitions = 2;
+  int64 items_total_count = 3;
+  int64 timestamp = 4;
+}
+
+message TiledData {
+  string dir_name = 1;
+  string data_file_name = 2;
+  string offset_file_name = 3;
+  int64 items_count = 4;
+  int64 data_file_size = 5;
+  int64 offset_file_size = 6;
+}
+
+message DumpMeta {
+  string dir_name = 1;
+  repeated TiledData tiled_data = 2;
+  map<int32, int64> partitions = 3;
+  int64 items_total_count = 4;
+  int64 base_timestamp = 5;
+  int64 timestamp = 6;
+}
+
+message MinorsDumpMeta {
+  repeated DumpMeta minor_dumps = 1;
+  int64 timestamp = 2;
+}
+
+message MainMeta {
+  int64 timestamp = 1;
+  int64 json_create_time = 2;
+}

@@ -4,6 +4,13 @@ KVQuery is an **in-process C++20 query engine for read-heavy, immutable key-valu
 
 The engine combines a compact neighbor-hash index, optional small-value inlining, prefetching, AMAC and SIMD batch probing. Applications include materialized features, document metadata, entity attributes and reference-data snapshots.
 
+The repository also includes an optional **partitioned online-refresh and replica
+layer**. It builds one compact query index per shard, replaces shards one at a
+time, and exposes generation-pinned batch reads. A reusable client adds bounded
+hot-key tracking, a TTL/LRU cache, miss coalescing, replica rotation and bounded
+failover. [Build and operate the combined engine](docs/ONLINE_REFRESH.md). The
+standalone query API and its benchmark results remain separately scoped.
+
 [![Quick Start](https://img.shields.io/badge/Quick_Start-2563eb?style=flat-square)](#build-and-quick-start)
 [![Architecture](https://img.shields.io/badge/Architecture-475569?style=flat-square)](docs/ARCHITECTURE.md)
 [![API Reference](https://img.shields.io/badge/API_Reference-475569?style=flat-square)](docs/API.md)
